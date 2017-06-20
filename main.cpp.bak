@@ -1,0 +1,14 @@
+/**
+ * main.cpp
+ * Author: JoshuaWong JoshuaWong
+ * Email: 1034316376@qq.com
+ * Created on: 2016��11��28�� ����10:59:15
+ * Description: 
+ */
+#include "CDigitron.h"
+
+int main() {
+	CDigitron dig = CDigitron();
+	dig.DisplayNum(4567);
+}
+
