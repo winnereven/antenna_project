@@ -13,18 +13,22 @@
 #include <sys/ioctl.h>
 
 #include "common.h"
-#include "Linux/spidev.h"
-#include "Linux/gpio.h"
+#include "sys/gpio.h"
+#include "sys/spidev.h"
 #include "utils/DigUtils.h"
-
-#define DEV_SPI "/dev/spidev1.0"
-#define DEV_REFRESH "/dev/gpio-UTX4-refresh"
+#define SPI_USE
+#ifdef SPI_USE
+#define DEV_SPI "/dev/spidev2.0"
+#else
+#define DEV_SPI_MOSI "/dev/gpio-UTX2"
+#define DEV_SPI_SCK "/dev/gpio-URX2"
+#endif
+#define DEV_REFRESH "/dev/gpio-P2.5"
 
 const uint32_t SPI_MODE = SPI_MODE_0;
 const uint32_t SPI_BITS = 8;
 const uint32_t SPI_SPEED = 100000;
 const uint16_t SPI_DELAY = 0;
-const int DIS_DELAY_US = 3000;
 const long BLINK_INTERVAL_US = 400 * 1000;
 
 class CDigitronSPI {
@@ -79,7 +83,7 @@ public:
 	/**
 	 * 获取设置角度值
 	 */
-	void GetDegree(int* degree);
+	int GetDegree();
 
 	/**
 	 * 清空显示
@@ -89,8 +93,14 @@ public:
 	void Clear();
 
 private:
+#ifdef SPI_USE
+
 	// SPI设备标志
 	int m_fdSPI;
+#else
+	int m_fdmosi;
+	int m_fdsck;
+#endif
 	// GPIO控制移位寄存器输出显示设备标志
 	int m_fdRefresh;
 	// 四位显示字符编码
@@ -109,15 +119,32 @@ private:
 	 * @param
 	 * @return
 	 */
+#ifdef SPI_USE
 	void __InitSPI();
+#else
+	uint8_t dispalynumb[4];
+#endif
 };
 
 inline CDigitronSPI::CDigitronSPI() :
-		m_nCursorPos(-1), m_bPoint(false) {
+#ifdef SPI_USE
+		m_nCursorPos(-1), m_bPoint(false){
+#else
+		m_nCursorPos(-1), m_bPoint(false),dispalynumb{0x3f,0x06,0x5b,0x4f} {
+#endif
 	printf("CDigitronSPI object created!\n");
+#ifdef SPI_USE
 	m_fdSPI = open(DEV_SPI, O_RDWR);
 	if (m_fdSPI < 0)
 		handle_error_en(m_fdSPI, "open SPI device failed");
+#else
+	m_fdmosi = open(DEV_SPI_MOSI, O_RDWR);
+	if (m_fdmosi < 0)
+		handle_error_en(m_fdmosi, "open SPI mosi failed");
+	m_fdsck = open(DEV_SPI_SCK, O_RDWR);
+	if (m_fdsck < 0)
+		handle_error_en(m_fdsck, "open SPI sck failed");
+#endif
 	m_fdRefresh = open(DEV_REFRESH, O_RDWR);
 	if (m_fdRefresh < 0)
 		handle_error_en(m_fdRefresh, "open Refresh device failed");
@@ -129,15 +156,26 @@ inline CDigitronSPI::CDigitronSPI() :
 //	stSpiSetting[0].delay_usecs = SPI_DELAY;
 //	stSpiSetting[0].speed_hz = SPI_SPEED;
 //	stSpiSetting[0].bits_per_word = SPI_BITS;
+#ifdef SPI_USE
 
 	__InitSPI();
+#endif
 }
 
 inline CDigitronSPI::~CDigitronSPI() {
 	int ret;
+#ifdef SPI_USE
 	ret = close(m_fdSPI);
 	if (ret)
 		handle_error_en(ret, DEV_SPI);
+#else
+	ret = close(m_fdmosi);
+	if (ret)
+		handle_error_en(ret, DEV_SPI_SCK);
+	ret = close(m_fdsck);
+	if (ret)
+		handle_error_en(ret, DEV_SPI_MOSI);
+#endif
 	ret = close(m_fdRefresh);
 	if (ret)
 		handle_error_en(ret, DEV_REFRESH);
@@ -168,7 +206,7 @@ inline void CDigitronSPI::StopDisplay() {
 inline bool CDigitronSPI::GetDisplayStatus() {
 	return m_bFlagDisplay;
 }
-
+#ifdef SPI_USE
 inline void CDigitronSPI::__InitSPI() {
 	int ret;
 
@@ -188,7 +226,7 @@ inline void CDigitronSPI::__InitSPI() {
 	printf("bits per word: %d\n", SPI_BITS);
 	printf("max speed: %d Hz (%d KHz)\n", SPI_SPEED, SPI_SPEED / 1000);
 }
-
+#endif
 inline void CDigitronSPI::Display() {
 	int i = 0;
 	m_bFlagDisplay = true;
@@ -206,8 +244,8 @@ inline void CDigitronSPI::Display() {
 		DisplayBit(m_nDisCharCode[i], i, blank);
 		i++;
 		i %= 4;
-		usleep(DIS_DELAY_US);
-		time += DIS_DELAY_US;
+		usleep (DIGITRON_DELAY_US);
+		time += DIGITRON_DELAY_US;
 	}
 
 //清屏
@@ -228,9 +266,10 @@ inline void CDigitronSPI::DisplayBit(uint8_t code, int pos, bool blank) {
 	// 若有小数点且显示位为1，则显示小数点
 	code = (m_bPoint && pos == 1) ? code + 128 : code;
 
+#ifdef SPI_USE
 	uint8_t tranMsg[] = { (pos == m_nCursorPos && blank) ? DigUtils::GetBlankCode() : code,
 			(uint8_t) ~(0x1 << (3 - pos)) };
-
+//			(uint8_t) (0x1 << ( 3-pos)) };
 	stSpiSetting[0].tx_buf = (uint64_t) tranMsg;
 
 	ret = ioctl(m_fdSPI, SPI_IOC_MESSAGE(1), &stSpiSetting[0]);
@@ -239,6 +278,54 @@ inline void CDigitronSPI::DisplayBit(uint8_t code, int pos, bool blank) {
 	ret = ioctl(m_fdRefresh, SET_GPIO_LOW);
 //	usleep(100);
 	ret = ioctl(m_fdRefresh, SET_GPIO_HIGHT);
+#else
+	dispalynumb[pos]=(pos == m_nCursorPos && blank) ? DigUtils::GetBlankCode() : code;
+	bool bflag=0;
+	for(int m=0;m<4;m++)
+	{
+		uint8_t num = dispalynumb[m];
+		if(bflag == 0)
+		{
+			bflag =1;
+			for (int c=0;c<8;c++)
+			{
+				ioctl(m_fdsck, SET_GPIO_LOW);
+				if((num&0x80)==0x80)
+				{
+					ioctl(m_fdmosi, SET_GPIO_HIGHT);
+				}
+				else
+				{
+					ioctl(m_fdmosi, SET_GPIO_LOW);
+				}
+				num<<=1;
+				ioctl(m_fdsck, SET_GPIO_HIGHT);
+			}
+		}
+		if(bflag == 1)
+		{
+			bflag = 0;
+			num=~(0x1 << (3 - m));
+			for(int c =0;c<8;c++)
+			{
+				ioctl(m_fdsck, SET_GPIO_LOW);
+				if((num&0x80)==0x80)
+				{
+					ioctl(m_fdmosi, SET_GPIO_HIGHT);
+				}
+				else
+				{
+					ioctl(m_fdmosi, SET_GPIO_LOW);
+				}
+				num<<=1;
+				ioctl(m_fdsck, SET_GPIO_HIGHT);
+			}
+		}
+	ret = ioctl(m_fdRefresh, SET_GPIO_LOW);
+	usleep(100);
+	ret = ioctl(m_fdRefresh, SET_GPIO_HIGHT);
+	}
+#endif
 }
 
 inline void CDigitronSPI::SetCursorPos(int pos) {
@@ -284,15 +371,15 @@ inline void CDigitronSPI::SetPointEnable(bool b) {
 	m_bPoint = b;
 }
 
-inline void CDigitronSPI::GetDegree(int* degree) {
+inline int CDigitronSPI::GetDegree() {
 	if (!m_bPoint)
-		return;
+		return -1;
 	int sum = 0;
 	sum += DigUtils::GetIndexOfCode(m_nDisCharCode[0]);
 	sum += DigUtils::GetIndexOfCode(m_nDisCharCode[1]) * 10;
 	sum += DigUtils::GetIndexOfCode(m_nDisCharCode[2]) * 100;
 	sum += DigUtils::GetIndexOfCode(m_nDisCharCode[3]) * 1000;
-	*degree = sum;
+	return sum;
 }
 
 #endif /* CDIGITRONSPI_H_ */

@@ -9,8 +9,8 @@
 
 /**
  * main.cpp
- * Author: JoshuaWong JoshuaWong
- * Email: 1034316376@qq.com
+ * Author: even
+ * Email: 871454583@qq.com
  * Created on: 2016年11月28日 上午10:59:15
  * Description:
  */
@@ -18,50 +18,41 @@
 
 #include "common.h"
 #include "CDigitronSPI.h"
-#include "CKeyScan.h"
+#include "key/CKeyScan.h"
 #include "EventDriver.h"
-#include "CTehu485.h"
 #include "CMotor.h"
+#include "socket/SocketServer.h"
+//#include "uart/UartServer.h"
 
 CDigitronSPI* mDigitron;
-CKeyScan* mKeyProcessor;
+CKeyScan* mKeyScan;
 EventDriver* mEventDriver;
 CMotor* mMotor;
+SocketServer* mSocketServer;
+//UartServer* mUartServer;//串口服务类
 
-/**
- * 数码管显示线程
- */
+// 数码管显示线程
 void *DigDisplayThread(void *arg) {
 	mDigitron->Display();
 	pthread_exit(NULL);
 }
 
-/**
- * 电机运行线程
- */
+// 电机运行线程
 void *MotorRunThread(void *arg) {
 	mMotor->Run();
 	pthread_exit(NULL);
 }
 
-void onClick(uint8_t key) {
-	printf("key click : %d\n", key);
-	if (mEventDriver != NULL) {
-		mEventDriver->KeyClick((int) key);
-	}
+// Socket Server线程
+void *SocketServerThread(void *arg) {
+	mSocketServer->Start();
+	pthread_exit(NULL);
 }
-
-class Test: public OnLongClickListener {
-protected:
-	~Test();
-public:
-	void OnLongClick(uint8_t key) {
-		printf("OnLongClickListener:%d\n", key);
-		char s[4];
-		sprintf(s, "%4d", key);
-		mDigitron->SetText(s);
-	}
-};
+// Uart Server线程
+//void *UartServerThread(void *arg) {
+//	mUartServer->Start();
+//	pthread_exit(NULL);
+//}
 
 // 电机运行
 void initMotor() {
@@ -91,28 +82,64 @@ void initDigitron() {
 /**
  * 温湿度　Temperature Humidity
  */
-void thTest() {
-	CTehu485 tehu;
-	tehu.Send();
-	tehu.Read();
-}
+//void thTest() {
+//	CTehu485 tehu;
+//	tehu.SendBHQ();
+////	sleep(1);
+//	tehu.ReadBHQ();
+//}
 
 /**
  * 按键测试
  */
 void initKey() {
-	mKeyProcessor = new CKeyScan();
-	mKeyProcessor->SetOnClickListener(onClick);
-//	key->SetOnLongClickListener(new Test());
-	mKeyProcessor->StartScan();
+	mKeyScan = new CKeyScan();
 }
+
+void initSocketServer() {
+	mSocketServer = new SocketServer();
+	pthread_t tdSocket;
+
+	int ret = pthread_create(&tdSocket, NULL, SocketServerThread, NULL);
+	if (ret != 0)
+		handle_error_en(ret, "Socket server thread create failed!");
+}
+//void initUartDriver()
+//{
+//	mUartServer = new UartServer();
+//	pthread_t tdUart;
+//
+//	int ret = pthread_create(&tdUart, NULL, UartServerThread, NULL);
+//	if (ret != 0)
+//		handle_error_en(ret, "Uart server thread create failed!");
+//}
 void initEventDriver() {
-	mEventDriver = new EventDriver(mDigitron);
+//	mEventDriver = new EventDriver(mKeyScan, mDigitron, mSocketServer, mMotor,mUartServer);
+	mEventDriver = new EventDriver(mKeyScan, mDigitron, mSocketServer, mMotor);
+
 }
+
+//void crctest() {
+//	uint8_t buf[14] = { 0x24, 0x24, 0x2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+//	uint16_t crc = CRC16Utils::CRC16(buf, 14);
+//	printf("%x %x\n", crc >> 8, crc & 0xff);
+//}
+
 int main() {
+	system("echo 1 > /sys/class/leds/beep/brightness");
+//	sleep(1);
+//	thTest();
+	initKey();
 	initMotor();
 	initDigitron();
+	initSocketServer();
+//	initUartDriver();
 	initEventDriver();
-	initKey();
+	sleep(1);
+	// 主线程开始键盘扫描
+//	mMotor->SendtoFPGA(4,0,mDigitron->GetDegree());
+	system("echo 0 > /sys/class/leds/beep/brightness");
+
+	mKeyScan->StartScan();
 }
 

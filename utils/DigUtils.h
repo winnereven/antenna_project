@@ -15,7 +15,7 @@
 using namespace std;
 
 //不带小数点的段码(共阳极)
-const uint8_t Dig_Figure_Sun[] = { 0xc0 /* 0 */, 0xf9 /* 1 */, 0xa4 /* 2 */, 0xb0 /* 3 */,
+const uint8_t Dig_Figure_sun[] = { 0xc0 /* 0 */, 0xf9 /* 1 */, 0xa4 /* 2 */, 0xb0 /* 3 */,
 		0x99 /* 4 */, 0x92 /* 5 */, 0x82 /* 6 */, 0xf8 /* 7 */, 0x80 /* 8 */, 0x90 /* 9 */,
 		0xFF /* 全暗 */, 0xa7 /* C */, 0xbf /* - */, 0xa0 /* a */, 0xc7 /* L */, 0x8e /* F */,
 		0x91 /* y */, 0x8c /* p */
@@ -83,15 +83,21 @@ uint8_t GetBlankCode() {
 
 string GetDisplayString(DisplayMode mode, int extra) {
 	string str = "";
+	char s[4];
 	switch (mode) {
 	case FUNCTION_SELECT:
 		extra %= 7;
 		str = DIS_STR_MODE[extra];
 		break;
 	case DEGREE_SETTING:
-	case DEGREE_SHOW:
-		char s[4];
 		sprintf(s, "%04d", extra);
+		str = s;
+		break;
+	case DEGREE_SHOW:
+		if (extra == 0)
+			sprintf(s, "  00");
+		else
+			sprintf(s, "%4d", extra);
 		str = s;
 		break;
 	case PRE_DEGREE_SELECT:

@@ -14,7 +14,7 @@
 #include <unistd.h>
 
 #include "common.h"
-#include "Linux/gpio.h"
+#include "sys/gpio.h"
 
 #define NUM_LEDS 4
 #define NUM_LED_BITS 8
