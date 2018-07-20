@@ -585,7 +585,10 @@ inline Msg* EventDriver::onGetDownCmd(Msg* down) {
 		backMsg = __GetRunParamsReplyMsg(CMD_RUN_DEGREE);
 		break;
 	case CMD_ADU_REBOOT:	//ADU reboot
-//		exit(EXIT_SUCCESS);
+		mSocketServer->DisConnect();
+		mSocketServer->~SocketServer();
+		system("reboot");
+		exit(EXIT_SUCCESS);
 		break;
 		//TODO 修改FPGA回传指令功能
 	case CMD_FPGA_BACK:

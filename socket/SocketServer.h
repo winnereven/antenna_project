@@ -33,6 +33,7 @@ public:
 	SocketServer();
 	~SocketServer();
 	void Start();
+	void DisConnect();
 	void SetEnable(bool enable);
 	void SetGetDownMsgListener(IOnGetDownCmdListener * listener);
 	void SendMsg(Msg *msg);
@@ -62,9 +63,17 @@ inline SocketServer::SocketServer() :
 }
 
 inline SocketServer::~SocketServer() {
+	close(m_nSocketServerFd);
+	m_nSocketServerFd = -1;
+
 	printf("SocketServer Object destroyed!\n");
 }
+inline void SocketServer::DisConnect()
+{
+	close(m_nSocketClientFd);
+	m_nSocketClientFd = -1;
 
+}
 inline void SocketServer::Start() {
 	socklen_t sin_size;                      	// to store struct size
 	struct sockaddr_in addr_local;

@@ -16,7 +16,7 @@
 #include "uart/UartServer.h"
 #include "CTehu485.h"
 
-#define DELAY 10*1000
+#define DELAY 40*1000
 #define MOTOR_STEP 5
 #define DEGREES_FILE_NAME "/opt/pre_degrees.dat"
 #define CURDEGR_FILE_NAME "/opt/current_degrees.dat" //当前角度文件

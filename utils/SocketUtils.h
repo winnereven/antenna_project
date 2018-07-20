@@ -32,12 +32,14 @@ int GetDownstreamDataLen(uint8_t cmd) {
 	case CMD_RUN_PARAM_QUERY:
 	case CMD_CORRECT_QUERY:
 	case CMD_TEN_POINT_QUERY:
+	case CMD_ADU_REBOOT:
 		len = 1;
 		break;
 	case CMD_ROTATE_TO_DEGREE:
 	case CMD_ROTATE_TO_POINT:
 	case CMD_ROTATE_FWD:
 	case CMD_ROTATE_REV:
+	case CMD_RUN_DEGREE:
 		len = 3;
 		break;
 	case CMD_TEN_POINT_SET:
