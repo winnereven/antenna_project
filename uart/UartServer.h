@@ -41,13 +41,13 @@ public:
 
 private:
 	uint8_t mSendBuf[BUFFER_SIZE];
-	uint8_t mSendtoFPGA[17];
 	uint8_t mRecvBuf[BUFFER_SIZE];
 	int mSendLen;
 
 	int datalen;
 	UartCache* mUartCache;//数据处理类
 	IOnGetDownCmdListener *mGetDownCmdListener;
+	uint8_t mSendtoFPGA[17];
 
 	// 串口初始化
 //	void __InitUART();
@@ -55,8 +55,14 @@ private:
 	void __DownstreamProcessor(int fd, Msg *msg, void *args);
 };
 
-inline UartServer::UartServer():mGetDownCmdListener(NULL),mSendtoFPGA({0x24,0x24,0x51,0x0a,0x00,0x01,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x0d})
+//inline UartServer::UartServer():mGetDownCmdListener(NULL),mSendtoFPGA({0x24,0x24,0x51,0x0a,0x00,0x01,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x0d})
+inline UartServer::UartServer()
 	{
+		mSendLen=0;
+		datalen=0;
+		mUartCache = new UartCache(this);
+		mGetDownCmdListener=NULL;
+		mSendtoFPGA={0x24,0x24,0x51,0x0a,0x00,0x01,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x0d};
 		int ret;
 		m_fdFPGA = DevUtils::OpenDev(DEV_UART3, O_RDWR | O_NOCTTY);
 		ret = set_port_attr(m_fdFPGA, UART_BAUD_RATE, UART_DATA_BIT, UART_STOP_BIT, UART_PARITY,
@@ -64,7 +70,7 @@ inline UartServer::UartServer():mGetDownCmdListener(NULL),mSendtoFPGA({0x24,0x24
 		if (ret < 0) {
 			printf("set uartfpga attr failed m_fdFPGA = %d\n",m_fdFPGA);
 			exit(-1);
-	}
+		}
 //	m_fdTEMP = open(DEV_UART1, O_RDWR | O_NOCTTY);
 //	ret = set_port_attr(m_fdTEMP, UART_BAUD_RATE, UART_DATA_BIT, UART_STOP_BIT, UART_PARITY,
 //			UART_VTIME, UART_VMIN);
@@ -90,9 +96,6 @@ inline UartServer::UartServer():mGetDownCmdListener(NULL),mSendtoFPGA({0x24,0x24
 //	if(fcntl(m_fdPROT,F_SETFL,FNDELAY) < 0)
 //		printf("fcntl m_fdLIGHT2 failed\n");
 //
-	datalen=0;
-	mSendLen=0;
-	mUartCache = new UartCache(this);
 
 	printf("UartServer Object created!\n");
 

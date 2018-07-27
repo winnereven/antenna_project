@@ -449,7 +449,8 @@ inline Msg* EventDriver::__GetRunParamsReplyMsg(uint8_t cmd) {
 	Msg *backMsg = NULL;
 	uint8_t data[SOCKET_MSG_DATA_SIZE];
 	data[0] = 0x01;	// 地址码
-	data[1] = cmd;	// 对应下行命令码
+	if(mMotor->IsRunning()==0)
+		data[1] = cmd;	// 对应下行命令码
 	data[2] = mMotor->IsRunning() ? 0x01 : 0x00;	// 状态信息
 	data[3] = mKeyScan->GetCtlMode() ? 0x01 : 0x02;	// 工作模式
 	uchar *iw;
@@ -490,7 +491,6 @@ inline Msg* EventDriver::onGetDownCmd(Msg* down) {
 		for (int i = 1; i < 11; i++)
 			data[i] = 0x00;
 		backMsg = new Msg(0,CMD_BACK_ONLINE, data, 11, false);
-		mMotor->back_WorkStation();
 		break;
 	case CMD_ROTATE_TO_DEGREE:	// 定位控制指令
 		if (mMotor->IsRunning() || mKeyScan->GetCtlMode())
@@ -520,12 +520,16 @@ inline Msg* EventDriver::onGetDownCmd(Msg* down) {
 		degree = down->data[1] * 256 + down->data[2];
 		log("degree:%d", degree);
 		mMotor->RunToDegree(degree);
+		backMsg = __GetRunParamsReplyMsg(CMD_ROTATE_TO_POINT);
 		break;
 	case CMD_CORRECT:	// 角度校准指令
 		if (mMotor->IsRunning() || mKeyScan->GetCtlMode())
 			break;
 		mMotor->Correct();
 		mDigitron->SetText(DigUtils::GetDisplayString(mMode, mMotor->GetCurrDegree()));
+		data[0] = ADDRESS;
+		data[1] = mMotor->isCorrect?0x01:0x00;
+		backMsg = new Msg(0,CMD_BACK_CORRECT, data, 2, false);
 		break;
 	case CMD_ROTATE_FWD:	// 顺时针点动控制
 		if (mMotor->IsRunning() || mKeyScan->GetCtlMode())
@@ -533,6 +537,7 @@ inline Msg* EventDriver::onGetDownCmd(Msg* down) {
 		degree = down->data[1] * 256 + down->data[2];
 		log("degree:%d", degree);
 		mMotor->StepFWD(degree);
+		backMsg = __GetRunParamsReplyMsg(CMD_ROTATE_FWD);
 		break;
 	case CMD_ROTATE_REV:	// 逆时针点动控制
 		if (mMotor->IsRunning() || mKeyScan->GetCtlMode())
@@ -540,6 +545,7 @@ inline Msg* EventDriver::onGetDownCmd(Msg* down) {
 		degree = down->data[1] * 256 + down->data[2];
 		log("degree:%d", degree);
 		mMotor->StepREV(degree);
+		backMsg = __GetRunParamsReplyMsg(CMD_ROTATE_REV);
 		break;
 	case CMD_STOP:	// 天线停车指令
 		if (mKeyScan->GetCtlMode())
@@ -577,7 +583,18 @@ inline Msg* EventDriver::onGetDownCmd(Msg* down) {
 			degree = down->data[2 * i + 1] * 256 + down->data[2 * i + 2];
 			mMotor->SetPreDegree(degree, i);
 		}
+		data[0] = ADDRESS;
+		data[1] = CMD_TEN_POINT_SET;
+		data[2] = 0x00;		// 预留位
+		for (int i = 0; i < 10; i++) {
+			data[2 * i + 3] = mMotor->GetPreDegree(i) >> 8;
+			data[2 * i + 4] = mMotor->GetPreDegree(i) & 0xff;
+		}
+		backMsg = new Msg(0,CMD_BACK_TEN_POINT, data, 23, false);
+
+
 		break;
+
 	case CMD_RUN_DEGREE:	//旋转相对角度
 		degree = down->data[1] * 256 + down->data[2];
 		degree /= 10;
@@ -585,10 +602,14 @@ inline Msg* EventDriver::onGetDownCmd(Msg* down) {
 		backMsg = __GetRunParamsReplyMsg(CMD_RUN_DEGREE);
 		break;
 	case CMD_ADU_REBOOT:	//ADU reboot
-		mSocketServer->DisConnect();
-		mSocketServer->~SocketServer();
-		system("reboot");
-		exit(EXIT_SUCCESS);
+		data[0] = ADDRESS;
+		data[1] = 01;
+		backMsg = new Msg(0,CMD_ADU_REBACK, data, 2, false);
+//		mSocketServer->DisConnect();
+//		mSocketServer->~SocketServer();
+//		system("reboot");
+//		exit(EXIT_SUCCESS);
+		system("sh /opt/restart.sh &");
 		break;
 		//TODO 修改FPGA回传指令功能
 	case CMD_FPGA_BACK:
@@ -599,6 +620,11 @@ inline Msg* EventDriver::onGetDownCmd(Msg* down) {
 //			printf("%x ",down->data[i]);
 //		}
 //		printf("\n");
+		switch(down->data[1])
+		{
+			case 0x04:mMotor->isCorrect=1;
+
+		}
 		back_degree = down->data[9]*256+down->data[10];
 		back_degree /= 10;
 		printf("back_degree is %d \n",back_degree);

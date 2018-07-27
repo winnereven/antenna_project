@@ -80,6 +80,7 @@ typedef enum {
 	CMD_BACK_CORRECT = 0x06,		// 设备(ADU)角度校准回复指令
 	CMD_BACK_CORRECT_QUERY = 0x07,	// 设备校准角度查询回复指令
 
+	CMD_ADU_REBACK = 0x10,			//ADUreboot
 	CMD_FPGA_SEND = 0x51,			//ADU->FPGA
 } UpstreamCmd;
 

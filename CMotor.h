@@ -78,6 +78,7 @@ public:
 	//设置存储角度
 	void SetCrutDegre(int degree);
 
+	int isCorrect;
 private:
 	int mCurrDegree;			// 电机当前角度
 	int mIntentDegreeDiff;		// 电机目标角度差值	-1：持续转动	0~360：欲转相对角度
@@ -94,8 +95,8 @@ private:
 };
 
 inline CMotor::CMotor() :
-		mCurrDegree(0), mIntentDegreeDiff(0), m_bForward(true), mDegreeChangedListener(
-		NULL),mIsruning(0) {
+		isCorrect(0),mCurrDegree(0), mIntentDegreeDiff(0), m_bForward(true),mIsruning(0), mDegreeChangedListener(
+		NULL) {
 	printf("CMotor object created!\n");
 	m_fdFwdLed = open(DEV_FWD_LED, O_RDWR);
 	if (m_fdFwdLed < 0)
@@ -309,6 +310,7 @@ inline int CMotor::GetPreDegree(int index) {
 inline void CMotor::Correct() {
 	m_nOffset = (m_nOffset + mCurrDegree) % 3600;
 	mCurrDegree = 0;
+	isCorrect = 0;
 	this->SendtoFPGA(4,0,GetCurrDegree());
 }
 

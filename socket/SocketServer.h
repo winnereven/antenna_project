@@ -124,6 +124,7 @@ inline void SocketServer::Start() {
 		/* Child process */
 		while (true) {
 			int recvCount = recv(m_nSocketClientFd, mRecvBuf, sizeof(mRecvBuf), 0); // Ω” ’
+			printf("recvCount = %d\n\n",recvCount);
 			if (recvCount == 0) {
 				printf("client disconnect\n");
 				break;

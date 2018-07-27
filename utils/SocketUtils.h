@@ -16,7 +16,7 @@ namespace SocketUtils {
 inline int GetDownstreamDataLen(uint8_t cmd);
 inline int GetUpstreamDataLen(uint8_t cmd);
 }
-
+//TODO 指令长度修改
 namespace SocketUtils {
 int GetDownstreamDataLen(uint8_t cmd) {
 	int len;
@@ -72,6 +72,9 @@ int GetUpstreamDataLen(uint8_t cmd) {
 		break;
 	case CMD_BACK_CORRECT_QUERY:
 		len = 3;
+		break;
+	case CMD_ADU_REBACK:
+		len = 2;
 		break;
 	default:
 		len = -1;

@@ -334,6 +334,7 @@ inline int CKeyScan::__GetKeyValue(ClickType type, uint16_t keyCode) {
 	int keyValue = KEY_CODE_UNKNOWN;
 	int i;
 
+
 	switch (type) {
 	case SHORT_CLICK:
 		for (i = 0; i < 10; i++)

@@ -53,7 +53,7 @@ inline int DataCache::__MsgCopyIn(uint8_t *buf, int len) {
 	uint8_t *src = buf;
 
 	if (this->tag == 1 && this->front == this->rear) {
-		log("socket cache is full!", NULL);
+		log("socket cache is full!", " ");
 		return 0;
 	}
 
@@ -80,16 +80,16 @@ inline int DataCache::__MsgCopyOut(uint8_t *buf, int start_index, int len) {
 		return 0;
 	}
 	if (this->front == this->rear && this->tag == 0) {
-		log("socket cache is empty!", NULL);
+		log("socket cache is empty!", " ");
 		return 0;
 	}
 	if (this->rear > this->front) {	// 如果循环队列不为空
 		if (start_index < this->front || start_index > this->rear) {
-			log("invalid start index!", NULL);
+			log("invalid start index!", " ");
 			return 0;
 		}
 	} else if (start_index > this->rear && start_index < this->front) {
-		log("invalid start index!", NULL);
+		log("invalid start index!", " ");
 		return 0;
 	}
 
