@@ -73,7 +73,7 @@ inline EventDriver::EventDriver(CKeyScan* keyScan, CDigitronSPI* digitron, Socke
 		mKeyScan(keyScan), mDigitron(digitron), mSocketServer(server), mMotor(motor),
 		mMode(FUNCTION_SELECT), mCurrFuncIndex(0), mCurrFunction(-1), mCurrPreDegree(0) {
 	printf("EventDriver Object created!\n");
-	mDigitron->SetText(DigUtils::GetDisplayString(mMode, mCurrFuncIndex));
+//	mDigitron->SetText(DigUtils::GetDisplayString(mMode, mCurrFuncIndex));
 	mMotor->SetOnDegreeChangedListener(this);
 	mKeyScan->SetOnClickListener(this);//onCtlModeChanged  &  onKeyClick
 	mSocketServer->SetGetDownMsgListener(this);
@@ -458,6 +458,7 @@ inline Msg* EventDriver::__GetRunParamsReplyMsg(uint8_t cmd) {
 	for (int i = 0; i < 9; i++) {
 		data[i+4] = *(iw+i);
 	}
+	data[2]^=*(iw+9);
 	data[13] = mMotor->GetCurrDegree() >> 8;
 	data[14] = mMotor->GetCurrDegree() & 0xff;
 
@@ -627,7 +628,7 @@ inline Msg* EventDriver::onGetDownCmd(Msg* down) {
 		}
 		back_degree = down->data[9]*256+down->data[10];
 		back_degree /= 10;
-		printf("back_degree is %d \n",back_degree);
+//		printf("back_degree is %d \n",back_degree);
 		if(back_degree!=mMotor->GetCurrDegree())
 			mMotor->SetCurrDegree(back_degree);
 		else if(mMotor->IsRunning())

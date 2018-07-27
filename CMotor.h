@@ -26,6 +26,7 @@
 #define DEV_ERR_LED "/dev/gpio-ERR"
 #define DEV_RUN_LED "/dev/gpio-RUN"
 
+
 class CMotor :public UartServer,public CTehu485{
 public:
 	CMotor();
@@ -309,9 +310,10 @@ inline int CMotor::GetPreDegree(int index) {
 
 inline void CMotor::Correct() {
 	m_nOffset = (m_nOffset + mCurrDegree) % 3600;
-	mCurrDegree = 0;
+	__SaveLocalData();
+//	mCurrDegree = 0;
 	isCorrect = 0;
-	this->SendtoFPGA(4,0,GetCurrDegree());
+	this->SendtoFPGA(4,0,0);
 }
 
 inline void CMotor::SetOnDegreeChangedListener(IOnDegreeChangedListener* listener) {

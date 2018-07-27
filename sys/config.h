@@ -14,7 +14,6 @@
 
 #define VERSION "171122"
 
-#define WATCH_DOG_EN 1
 #define RESTART_MIDNIGHT 1	// 半夜重启功能开启标志位
 #define CLOSE_FIBER 1//开机关闭激光器使能
 //#define TEMP_EN 1
@@ -28,13 +27,11 @@
 #define UART_DATA_BIT		8
 #define UART_STOP_BIT		"2"
 #define UART_PARITY			'N'
-#define UART_PARITY_O		'O'
+#define UART_PARITY_O		'O'//偶校验
 
 #define UART_VTIME			1//等200ms 如果没有数据就返回0
 #define UART_VMIN			0
 //#define UART_VMIN			255
 
-// TODO Watch dog 时间
-#define WATCH_DOG_TIMEOUT 60	// 看门狗超时，单位秒
 
 #endif /* SYS_CONFIG_H_ */

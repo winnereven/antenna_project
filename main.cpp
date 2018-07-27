@@ -135,7 +135,7 @@ int main() {
 	initSocketServer();
 //	initUartDriver();
 	initEventDriver();
-	sleep(1);
+//	sleep(1);
 	// 主线程开始键盘扫描
 //	mMotor->SendtoFPGA(4,0,mDigitron->GetDegree());
 	system("echo 0 > /sys/class/leds/beep/brightness");

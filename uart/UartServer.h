@@ -151,12 +151,13 @@ inline void UartServer::GetUartData(int fd, uchar* buf,int* lenofdata) {
 		*lenofdata = read(fd,buf, BUFFER_SIZE);
 		if(*lenofdata > 0)
 		{
-			printf("recive FPGA data :");
-			for(int i =0 ;i<*lenofdata;i++)
-			{
-				printf("%x ",*(buf+i));
-			}
-			printf("\n");
+//			printf("recive FPGA data :");
+//			for(int i =0 ;i<*lenofdata;i++)
+//			{
+//				printf("%x ",*(buf+i));
+//			}
+//			printf("\n");
+			;
 		}
 
 }

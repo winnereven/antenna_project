@@ -190,6 +190,7 @@ inline void CDigitronSPI::SetText(string str) {
 	for (int i = 0; i < len; i++) {
 		m_nDisCharCode[i] = DigUtils::GetCodeOfChar(chars[len - i - 1]);
 	}
+	m_nDisCharCode[1]==0x00?m_nDisCharCode[1]=DigUtils::GetCodeOfChar('0'):NULL;
 }
 
 inline void CDigitronSPI::Clear() {

@@ -20,6 +20,7 @@
 #include "IOnGetDownCmdListener.h"
 #include "SocketCache.h"
 #include "SocketMsg.h"
+#include "../sys/watchdog.h"
 
 #define LISTEN_PORT 5000
 #define MAXLINE 4096
@@ -28,6 +29,8 @@
 #define BACKLOG 	10
 #define SOCKET_BUFFER_LEN 512              		// Buffer length
 
+#define DEV_WATCHDOG "/dev/watchdog"		//看门狗
+
 class SocketServer: IOnFindMsgListener {
 public:
 	SocketServer();
@@ -35,6 +38,8 @@ public:
 	void Start();
 	void DisConnect();
 	void SetEnable(bool enable);
+	int CheckStatu();
+
 	void SetGetDownMsgListener(IOnGetDownCmdListener * listener);
 	void SendMsg(Msg *msg);
 	// @Override
@@ -47,17 +52,20 @@ private:
 	IOnGetDownCmdListener *mGetDownCmdListener;
 	bool m_bUartEn;
 
-	int m_nSocketServerFd, m_nSocketClientFd;
+	int m_nSocketServerFd, m_nSocketClientFd,m_fdWatchDog;
 
 	// 上行指令处理
 	void __UpstreamProcessor(int fd, Msg *msg, void *args);
 	// 下行指令处理
 	void __DownstreamProcessor(int fd, Msg *msg, void *args);
+	void __InitWatchDog();
+	void __FeedDog();
+	void __CloseWd();
 };
 
 inline SocketServer::SocketServer() :
 		mSendLen(0), mGetDownCmdListener(NULL), m_bUartEn(false), m_nSocketServerFd(-1), m_nSocketClientFd(
-				-1) {
+				-1),m_fdWatchDog(-1) {
 	printf("SocketServer Object created!\n");
 	mSocketCache = new DataCache(this);
 }
@@ -119,6 +127,9 @@ inline void SocketServer::Start() {
 			continue;
 		} else {
 			printf("OK: Server has got connect from %s.\n", inet_ntoa(addr_remote.sin_addr));
+#if WATCH_DOG_EN
+	__InitWatchDog();
+#endif
 		}
 
 		/* Child process */
@@ -133,6 +144,7 @@ inline void SocketServer::Start() {
 			for (int i = 0; i < recvCount; i++) {
 				printf("%x ", mRecvBuf[i]);
 			}
+			__FeedDog();
 			printf("\n");
 			mSocketCache->MsgPreParse(m_nSocketClientFd, mRecvBuf, recvCount, NULL);
 			mSocketCache->MsgPreParse(m_nSocketClientFd, mSendBuf, mSendLen, NULL);
@@ -142,7 +154,9 @@ inline void SocketServer::Start() {
 			mSendLen = 0;
 			usleep(DATA_PARSE_DELAY_US);
 		}
-
+#if WATCH_DOG_EN
+		__CloseWd();
+#endif
 		close(m_nSocketClientFd);
 		m_nSocketClientFd = -1;
 		while (waitpid(-1, NULL, WNOHANG) > 0)
@@ -153,7 +167,12 @@ inline void SocketServer::Start() {
 inline void SocketServer::SetEnable(bool enable) {
 	this->m_bUartEn = enable;
 }
-
+inline int SocketServer::CheckStatu(){
+	if(m_nSocketServerFd > 0 && m_nSocketClientFd > 0)
+		return 1;
+	else
+		return 0;
+}
 inline void SocketServer::SetGetDownMsgListener(IOnGetDownCmdListener *listener) {
 	this->mGetDownCmdListener = listener;
 }
@@ -202,6 +221,25 @@ inline void SocketServer::__DownstreamProcessor(int fd, Msg *msg, void *args) {
 			delete backMsg;
 		}
 	}
+}
+inline void SocketServer::__InitWatchDog() {
+	int timeout = WATCH_DOG_TIMEOUT;//
+	m_fdWatchDog = open(DEV_WATCHDOG, O_WRONLY);
+	printf("WDT is opened!\n");
+	ioctl(m_fdWatchDog, WDIOC_SETTIMEOUT, &timeout);
+	ioctl(m_fdWatchDog, WDIOC_GETTIMEOUT, &timeout);
+	printf("The timeout was is %d seconds\n", timeout);
+}
+inline void SocketServer::__CloseWd() {
+	int opt = WDIOS_DISABLECARD;
+    if (write(m_fdWatchDog, "V", 1) != 1) {
+        printf("write WDT_OK_TO_CLOSE failed!");
+    }
+	ioctl(m_fdWatchDog, WDIOC_SETOPTIONS, &opt);
+	close(m_fdWatchDog);
+}
+inline void SocketServer::__FeedDog() {
+	write(m_fdWatchDog, "\0", 1);
 }
 
 #endif /* SOCKETSERVER_H_ */
