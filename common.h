@@ -106,7 +106,10 @@ enum MatrixKey {
 	KEY_DOWN_L,		// 下(长按)
 	KEY_LEFT_L,		// 左(长按)
 	KEY_MOTOR_REV_L,	// 电机反转(长按)
-	KEY_MOTOR_FWD_L	// 电机正转(长按)
+	KEY_MOTOR_FWD_L,	// 电机正转(长按)
+
+	KEY_STOP,
+	KEY_USTOP
 };
 
 // 显示模式
@@ -115,10 +118,14 @@ enum DisplayMode {
 	DEGREE_SETTING,			// 角度设置
 	DEGREE_SHOW,			// 角度显示
 	PRE_DEGREE_SELECT,		// 预设角度选择
+	ERROR_DESPAY			// 错误显示
 };
 //时间申明
 time_t now;
 struct tm *timenow;
+
+int DEBUG_even = 0;
+
 /* 出错处理宏供返回错误码的函数使用*/
 #define handle_error_en(en, msg) do{errno=en; perror(msg); exit(EXIT_FAILURE);} while(0)
 /* 出错处理宏*/

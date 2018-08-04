@@ -12,7 +12,7 @@
 
 #include <termios.h>
 
-#define VERSION "171122"
+#define VERSION "180802"
 
 #define RESTART_MIDNIGHT 1	// 半夜重启功能开启标志位
 #define CLOSE_FIBER 1//开机关闭激光器使能

@@ -26,6 +26,12 @@
 #define DEV_ERR_LED "/dev/gpio-ERR"
 #define DEV_RUN_LED "/dev/gpio-RUN"
 
+#define LED_SHINE_QUICK_COUNT	5	// *LED_DELAY_US
+#define LED_SHINE_SLOW_COUNT	15
+const bool LEDLIGHT = true;//高电平亮灯
+
+const char* LED_CHANNEL[] = {DEV_RUN_LED,DEV_ERR_LED};
+const uchar LEDNUM = 2;
 
 class CMotor :public UartServer,public CTehu485{
 public:
@@ -78,8 +84,12 @@ public:
 	void SetOnDegreeChangedListener(IOnDegreeChangedListener* listener);
 	//设置存储角度
 	void SetCrutDegre(int degree);
+	//设置LED显示状态
+	void SetLedStatus(int iLed,uint8_t data);
+	// 更新LED状态
+	void LedRefresh();
 
-	int isCorrect;
+//	int isCorrect;
 private:
 	int mCurrDegree;			// 电机当前角度
 	int mIntentDegreeDiff;		// 电机目标角度差值	-1：持续转动	0~360：欲转相对角度
@@ -89,14 +99,20 @@ private:
 	vector<int> m_nDegrees;
 	bool mIsruning;
 	IOnDegreeChangedListener* mDegreeChangedListener;
+	int m_fdLedWork[LEDNUM];	// LED1 LED2
+	uchar m_nLedStatus[LEDNUM];	// 0或其他-灭，1-慢闪，2-快闪，3-长亮
+	int m_nLedFlag[LEDNUM];		// LED闪烁计数
+
 	// 加载预设10组本地角度数据
 	void __LoadLocalData();
 	void __SaveLocalData();
 	void __LoadCurtDegre();
+	void __SetGpioOn(int fd, bool on);
+
 };
 
 inline CMotor::CMotor() :
-		isCorrect(0),mCurrDegree(0), mIntentDegreeDiff(0), m_bForward(true),mIsruning(0), mDegreeChangedListener(
+		mCurrDegree(0), mIntentDegreeDiff(0), m_bForward(true),mIsruning(0), mDegreeChangedListener(
 		NULL) {
 	printf("CMotor object created!\n");
 	m_fdFwdLed = open(DEV_FWD_LED, O_RDWR);
@@ -113,6 +129,10 @@ inline CMotor::CMotor() :
 	if (m_fdRunLed < 0)
 		handle_err_log("%s %s", DEV_RUN_LED, "open");
 
+	for (int i = 0; i < LEDNUM; i++) {
+		m_nLedStatus[i] = 0;
+		m_fdLedWork[i] = open(LED_CHANNEL[i], O_RDWR);
+	}
 	SetFwdLedOn(false);
 	SetRevLedOn(false);
 
@@ -164,7 +184,7 @@ inline void CMotor::Run() {
 			if(timenow->tm_min%3==0&&timenow->tm_sec==0){	// 3分钟采集一次
 				get_WorkStation();
 			}
-
+			LedRefresh();
 			usleep(DELAY);
 
 	}
@@ -202,6 +222,7 @@ inline bool CMotor::IsRunning() {
 inline void CMotor::SetStop() {
 	mIsruning=0;
 	mIntentDegreeDiff=0;
+	SetCrutDegre(mCurrDegree);
 }
 inline void CMotor::StepFWD() {
 	m_bForward = true;
@@ -260,14 +281,14 @@ inline void CMotor::StartRunFWD() {
 	m_bForward = true;
 	mIntentDegreeDiff = 65535;
 	SetFwdLedOn(true);
-	this->SendtoFPGA(2,mIntentDegreeDiff,this->GetCurrDegree());
+	this->SendtoFPGA(3,mIntentDegreeDiff,this->GetCurrDegree());
 }
 
 inline void CMotor::StartRunREV() {
 	m_bForward = false;
 	mIntentDegreeDiff = 65535;
 	SetRevLedOn(true);
-	this->SendtoFPGA(3,mIntentDegreeDiff,this->GetCurrDegree());
+	this->SendtoFPGA(2,mIntentDegreeDiff,this->GetCurrDegree());
 }
 
 inline void CMotor::StopRun() {
@@ -311,8 +332,8 @@ inline int CMotor::GetPreDegree(int index) {
 inline void CMotor::Correct() {
 	m_nOffset = (m_nOffset + mCurrDegree) % 3600;
 	__SaveLocalData();
-//	mCurrDegree = 0;
-	isCorrect = 0;
+	mCurrDegree = 0;
+//	isCorrect = 0;
 	this->SendtoFPGA(4,0,0);
 }
 
@@ -381,5 +402,44 @@ inline void CMotor::SetCrutDegre(int degree){
 	ofstream fout(CURDEGR_FILE_NAME);
 	fout << str << endl;
 	fout.close();
+}
+inline void CMotor::SetLedStatus(int i,uint8_t idate) {
+		m_nLedStatus[i] = idate;
+}
+inline void CMotor::LedRefresh() {
+	for (int i = 0; i < LEDNUM; i++) {
+		m_nLedFlag[i]++;
+		switch (m_nLedStatus[i]) {
+		case 1:
+			if (m_nLedFlag[i] >= LED_SHINE_SLOW_COUNT) {
+				m_nLedFlag[i] = 0;
+				__SetGpioOn(m_fdLedWork[i], LEDLIGHT);
+			} else
+				__SetGpioOn(m_fdLedWork[i], !LEDLIGHT);
+			break;
+		case 2:
+			if (m_nLedFlag[i] >= LED_SHINE_QUICK_COUNT) {
+				m_nLedFlag[i] = 0;
+				__SetGpioOn(m_fdLedWork[i], LEDLIGHT);
+			} else
+				__SetGpioOn(m_fdLedWork[i], !LEDLIGHT);
+			break;
+		case 3:
+			m_nLedFlag[i] = 0;
+			__SetGpioOn(m_fdLedWork[i], LEDLIGHT);
+			break;
+		default:
+			m_nLedFlag[i] = 0;
+			__SetGpioOn(m_fdLedWork[i], !LEDLIGHT);
+			break;
+		}
+	}
+
+}
+inline void CMotor::__SetGpioOn(int fd, bool on) {
+	int ret = ioctl(fd, on ? SET_GPIO_HIGHT : SET_GPIO_LOW);
+//	string dev_name = __GetDevName(fd);
+//	if (ret < 0)
+//		handle_err_log("%s %s", dev_name.c_str(), "ioctl");
 }
 #endif /* CMOTOR_H_ */

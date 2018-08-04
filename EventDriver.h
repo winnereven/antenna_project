@@ -48,6 +48,7 @@ private:
 	int mCurrFuncIndex;
 	int mCurrFunction;
 	int mCurrPreDegree;
+	uchar mFPGAsta;
 
 	// 功能选择模式按键处理
 	string __FuncSelProcessor(int key);
@@ -71,13 +72,14 @@ private:
 inline EventDriver::EventDriver(CKeyScan* keyScan, CDigitronSPI* digitron, SocketServer* server,
 		CMotor* motor) :
 		mKeyScan(keyScan), mDigitron(digitron), mSocketServer(server), mMotor(motor),
-		mMode(FUNCTION_SELECT), mCurrFuncIndex(0), mCurrFunction(-1), mCurrPreDegree(0) {
+		mMode(FUNCTION_SELECT), mCurrFuncIndex(0), mCurrFunction(-1), mCurrPreDegree(0),mFPGAsta(0x1b) {
 	printf("EventDriver Object created!\n");
 //	mDigitron->SetText(DigUtils::GetDisplayString(mMode, mCurrFuncIndex));
 	mMotor->SetOnDegreeChangedListener(this);
 	mKeyScan->SetOnClickListener(this);//onCtlModeChanged  &  onKeyClick
 	mSocketServer->SetGetDownMsgListener(this);
 	mMotor->SetGetDownMsgListener(this);
+	mMotor->SetLedStatus(0,1);
 }
 
 inline EventDriver::~EventDriver() {
@@ -106,6 +108,25 @@ inline void EventDriver::onCtlModeChanged(bool isLocal) {
 }
 
 inline void EventDriver::onKeyClick(int key) {
+	if(key == KEY_STOP)
+	{
+		string temp_err="--5p";
+		mDigitron->SetText(temp_err);
+		mDigitron->SetPointEnable(false);
+		mDigitron->SetCursorPos(-1);
+		mMode = ERROR_DESPAY;
+		sleep(1);
+	}else if(key == KEY_USTOP)
+	{
+		if(mMode == ERROR_DESPAY)
+		{
+			mMode = DEGREE_SHOW;
+			mDigitron->SetText(DigUtils::GetDisplayString(mMode, mMotor->GetCurrDegree()));
+			mDigitron->SetPointEnable(true);
+			mDigitron->SetCursorPos(-1);
+
+		}
+	}
 	if (mMotor->IsRunning() && key != 9 && key != 10) // 电机运转过程中按键无效
 		return;
 	string disStr;
@@ -468,7 +489,7 @@ inline Msg* EventDriver::__GetRunParamsReplyMsg(uint8_t cmd) {
 
 inline void EventDriver::onDegreeChanged(int degree) {
 	log("onDegreeChanged:%d", degree);
-	mMotor->SetCrutDegre(degree);
+//	mMotor->SetCrutDegre(degree);
 	if (mMode == DEGREE_SHOW)
 		mDigitron->SetText(DigUtils::GetDisplayString(DEGREE_SHOW, degree));
 
@@ -529,7 +550,8 @@ inline Msg* EventDriver::onGetDownCmd(Msg* down) {
 		mMotor->Correct();
 		mDigitron->SetText(DigUtils::GetDisplayString(mMode, mMotor->GetCurrDegree()));
 		data[0] = ADDRESS;
-		data[1] = mMotor->isCorrect?0x01:0x00;
+//		data[1] = mMotor->isCorrect?0x01:0x00;
+		data[1] = 0x00;
 		backMsg = new Msg(0,CMD_BACK_CORRECT, data, 2, false);
 		break;
 	case CMD_ROTATE_FWD:	// 顺时针点动控制
@@ -558,6 +580,8 @@ inline Msg* EventDriver::onGetDownCmd(Msg* down) {
 		backMsg = __GetRunParamsReplyMsg(CMD_RUN_PARAM_QUERY);
 		break;
 	case CMD_CORRECT_QUERY:		// 校准角度查询
+		if (mMotor->IsRunning() || mKeyScan->GetCtlMode())
+			break;
 		if (down->data[0] == ADDRESS) {
 			data[0] = ADDRESS;
 			data[1] = mMotor->GetOffsetDegree() >> 8;
@@ -578,6 +602,8 @@ inline Msg* EventDriver::onGetDownCmd(Msg* down) {
 		}
 		break;
 	case CMD_TEN_POINT_SET:		// 10个定点角度设置
+		if (mMotor->IsRunning() || mKeyScan->GetCtlMode())
+			break;
 		if (mKeyScan->GetCtlMode())
 			break;
 		for (int i = 0; i < 10; i++) {
@@ -597,12 +623,16 @@ inline Msg* EventDriver::onGetDownCmd(Msg* down) {
 		break;
 
 	case CMD_RUN_DEGREE:	//旋转相对角度
+		if (mMotor->IsRunning() || mKeyScan->GetCtlMode())
+			break;
 		degree = down->data[1] * 256 + down->data[2];
 		degree /= 10;
 		mMotor->RunToDegree(degree+mMotor->GetCurrDegree());
 		backMsg = __GetRunParamsReplyMsg(CMD_RUN_DEGREE);
 		break;
 	case CMD_ADU_REBOOT:	//ADU reboot
+		if (mMotor->IsRunning() || mKeyScan->GetCtlMode())
+			break;
 		data[0] = ADDRESS;
 		data[1] = 01;
 		backMsg = new Msg(0,CMD_ADU_REBACK, data, 2, false);
@@ -621,10 +651,15 @@ inline Msg* EventDriver::onGetDownCmd(Msg* down) {
 //			printf("%x ",down->data[i]);
 //		}
 //		printf("\n");
-		switch(down->data[1])
+//		switch(down->data[1])
+//		{
+//			case 0x04:mMotor->isCorrect=1;
+//
+//		}
+		if((down->data[1]&0x1b) != mFPGAsta)
 		{
-			case 0x04:mMotor->isCorrect=1;
-
+			mMotor->SetLedStatus(1,2);
+			mFPGAsta=down->data[1]&0x1b;
 		}
 		back_degree = down->data[9]*256+down->data[10];
 		back_degree /= 10;

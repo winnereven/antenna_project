@@ -112,7 +112,7 @@ inline void CTehu485::ReadWSD() {
 		WorkingCondition[0]=ucBuf[6];
 		WorkingCondition[1]=ucBuf[5];
 		WorkingCondition[2]=ucBuf[7];
-		WorkingCondition[9]^=0x20;
+		WorkingCondition[9]&=0xdf;
 	}
 	else{
 		WorkingCondition[0]=0;
@@ -136,7 +136,7 @@ inline void CTehu485::ReadBHQ() {
 		printf(" %x", ucBuf[i]);
 	}
 	printf("\n");
-	if(ucBuf[0]==0x01&&ucBuf[1]==0x04&&ucBuf[2]==0x01)
+	if(ucBuf[0]==0x01&&ucBuf[1]==0x04)
 	{
 		WorkingCondition[3]=ucBuf[10];
 		WorkingCondition[4]=ucBuf[12];
@@ -144,7 +144,7 @@ inline void CTehu485::ReadBHQ() {
 		WorkingCondition[6]=ucBuf[3];
 		WorkingCondition[7]=ucBuf[4];
 		WorkingCondition[8]=ucBuf[20];
-		WorkingCondition[9]^=0x40;
+		WorkingCondition[9]&=0xBF;
 	}
 	else{
 		WorkingCondition[3]=0;
@@ -153,7 +153,7 @@ inline void CTehu485::ReadBHQ() {
 		WorkingCondition[6]=0;
 		WorkingCondition[7]=0;
 		WorkingCondition[8]=0;
-		WorkingCondition[9]^=0x40;
+		WorkingCondition[9]|=0x40;
 	}
 }
 inline void CTehu485::get_WorkStation()
@@ -162,7 +162,7 @@ inline void CTehu485::get_WorkStation()
 	sleep(1);
 	ReadWSD();
 	SendBHQ();
-	sleep(1);
+	sleep(2);
 	ReadBHQ();
 //	return WorkingCondition;
 }

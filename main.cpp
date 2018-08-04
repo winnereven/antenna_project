@@ -125,19 +125,29 @@ void initEventDriver() {
 //	printf("%x %x\n", crc >> 8, crc & 0xff);
 //}
 
-int main() {
+int main(int argc, char* argv[]) {
+	// 版本查询
+	if(argc == 2){
+		if(strcmp(argv[1], "--version") == 0){
+			printf("version:%s\n", VERSION);
+			exit(EXIT_SUCCESS);
+		}
+		else if(strcmp(argv[1], "--debug") == 0){
+			DEBUG_even = 1;
+		}
+		else
+		{
+			printf("command error,  --version or --debug\n");
+			exit(EXIT_SUCCESS);
+		}
+	}
 	system("echo 1 > /sys/class/leds/beep/brightness");
-//	sleep(1);
-//	thTest();
+	system("echo none > /sys/class/leds/led-run/trigger");
 	initKey();
 	initMotor();
 	initDigitron();
 	initSocketServer();
-//	initUartDriver();
 	initEventDriver();
-//	sleep(1);
-	// 主线程开始键盘扫描
-//	mMotor->SendtoFPGA(4,0,mDigitron->GetDegree());
 	system("echo 0 > /sys/class/leds/beep/brightness");
 
 	mKeyScan->StartScan();

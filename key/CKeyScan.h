@@ -24,6 +24,7 @@
 #define DEV_STEP_L "/dev/gpio-P2.7"
 #define DEV_STEP_R "/dev/gpio-P2.6"
 #define DEV_CTL_MODE "/dev/gpio-UTX0"
+#define DEV_STOP "/dev/gpio-URX0"
 
 #define COUNT_COL 2
 #define COUNT_ROW 4
@@ -68,6 +69,7 @@ private:
 	int m_fdRows[COUNT_ROW];
 	// 正反转
 	int m_fdStepL, m_fdStepR;
+	int m_fdStop;
 	int m_fdCtlMode;
 	//键值
 	//uint8_t m_nKeyValue;
@@ -119,7 +121,8 @@ private:
 
 	// 获取本控/远控状态
 	bool __GetCtlMode();
-
+	//获取停止状态
+	bool __GetStop();
 	/**
 	 * 行设备col置低，其余置高
 	 * @param col:清位行序号
@@ -170,7 +173,9 @@ inline CKeyScan::CKeyScan() :
 	m_fdCtlMode = open(DEV_CTL_MODE, O_RDWR);
 	if (m_fdCtlMode < 0)
 		handle_err_log("%s %s", DEV_CTL_MODE, "open");
-
+	m_fdStop = open(DEV_STOP, O_RDWR);
+	if (m_fdStop < 0)
+		handle_err_log("%s %s", DEV_STOP, "open");
 	isLocalCtlMode = __GetCtlMode();
 }
 
@@ -195,6 +200,9 @@ inline CKeyScan::~CKeyScan() {
 	if (ret)
 		handle_err_log("%s %s", DEV_STEP_R, "close");
 	ret = close(m_fdCtlMode);
+	if (ret)
+		handle_err_log("%s %s", DEV_CTL_MODE, "close");
+	ret = close(m_fdStop);
 	if (ret)
 		handle_err_log("%s %s", DEV_CTL_MODE, "close");
 
@@ -230,7 +238,12 @@ inline void CKeyScan::StartScan() {
 			isLocalCtlMode = newCtlMode;
 			mKeyClickListener->onCtlModeChanged(isLocalCtlMode);
 		}
-
+		if(__GetStop())
+		{
+			mKeyClickListener->onKeyClick(KEY_STOP);
+			if(__GetStop()==0)
+				mKeyClickListener->onKeyClick(KEY_USTOP);
+		}
 		usleep(KEY_SCAN_DELAY_US);
 	}
 }
@@ -319,7 +332,14 @@ inline bool CKeyScan::__GetCtlMode() {
 		handle_err_log("%s %s", DEV_CTL_MODE, "read");
 	return buf == 0; // 本控为0，远控为1
 }
-
+inline bool CKeyScan::__GetStop() {
+	int ret;
+	uint8_t buf;
+	ret = read(m_fdStop, &buf, 1);
+	if (ret < 0)
+		handle_err_log("%s %s", DEV_STOP, "read");
+	return buf; // 不按为0，按下为1
+}
 inline void CKeyScan::__ClearCol(int col) {
 	int ret, i;
 

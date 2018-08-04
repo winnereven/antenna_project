@@ -104,6 +104,7 @@ string GetDisplayString(DisplayMode mode, int extra) {
 		extra %= 10;
 		str = DIS_STR_PRE_DEGREE[extra];
 		break;
+	default : break;
 	}
 	log("%s", str.c_str());
 	return str;
