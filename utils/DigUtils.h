@@ -18,13 +18,14 @@ using namespace std;
 const uint8_t Dig_Figure_sun[] = { 0xc0 /* 0 */, 0xf9 /* 1 */, 0xa4 /* 2 */, 0xb0 /* 3 */,
 		0x99 /* 4 */, 0x92 /* 5 */, 0x82 /* 6 */, 0xf8 /* 7 */, 0x80 /* 8 */, 0x90 /* 9 */,
 		0xFF /* 全暗 */, 0xa7 /* C */, 0xbf /* - */, 0xa0 /* a */, 0xc7 /* L */, 0x8e /* F */,
-		0x91 /* y */, 0x8c /* p */
+		0x91 /* y */, 0x8c /* p */, 0xA3 /* o */, 0xA1 /* d */, 0xF1 /* j */
 };
 
 //不带小数点的段码(共阴极)
 const uint8_t Dig_Figure[] = { 0x3f /* 0 */, 0x06 /* 1 */, 0x5b /* 2 */, 0x4f /* 3 */, 0x66 /* 4 */,
 		0x6d /* 5 */, 0x7d /* 6 */, 0x07 /* 7 */, 0x7f /* 8 */, 0x6f /* 9 */, 0x00 /* 全暗 */,
-		0x39 /* C */, 0x40 /* - */, 0x5F /* a */, 0x38 /* L */, 0x71 /* F */, 0x6e /* y */, 0x73 /* p */
+		0x39 /* C */, 0x40 /* - */, 0x5F /* a */, 0x38 /* L */, 0x71 /* F */, 0x6e /* y */, 0x73 /* p */,
+		0x5C /* o */, 0x5E /* d */, 0x0E /* j */
 };
 
 //带小数点的段码(共阴极)
@@ -35,11 +36,11 @@ const uint8_t Dig_Figure_Point[] = { 0xbf /* 0 */, 0x86 /* 1 */, 0xdb /* 2 */, 0
 };
 
 const char Dig_Char[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ' ', 'C', '-', 'a', 'L',
-		'F', 'y', 'p' };
+		'F', 'y', 'p','o','d','j' };
 
 const string DIS_STR_MODE[] = { "F001", "F002", "F003", "F004", "F005", "F006", "F007" };
 const string DIS_STR_PRE_DEGREE[] = { "C001", "C002", "C003", "C004", "C005", "C006", "C007",
-		"C008", "C009", "C010" };
+		"C008", "C009", "C010","--oL","--dj" };
 
 namespace DigUtils {
 /**
@@ -101,7 +102,7 @@ string GetDisplayString(DisplayMode mode, int extra) {
 		str = s;
 		break;
 	case PRE_DEGREE_SELECT:
-		extra %= 10;
+		extra %= 12;
 		str = DIS_STR_PRE_DEGREE[extra];
 		break;
 	default : break;

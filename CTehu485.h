@@ -30,7 +30,7 @@ class CTehu485 {
 public:
 	CTehu485();
 	~CTehu485();
-	void get_WorkStation();
+	void get_WorkStation(bool on);
 	uchar *back_WorkStation();
 private:
 	// 串口1设备标志
@@ -72,7 +72,8 @@ inline CTehu485::CTehu485() {
 
 	if(fcntl(m_fdUart2,F_SETFL,FNDELAY) < 0)
 		printf("fcntl m_fdLIGHT1 failed\n");
-	get_WorkStation();
+	get_WorkStation(0);
+	get_WorkStation(1);
 }
 
 inline CTehu485::~CTehu485() {
@@ -92,9 +93,9 @@ inline CTehu485::~CTehu485() {
 inline void CTehu485::SendWSD() {
 //	Clear485En();
 	int len = write(m_fdUart1, TH_Send_Command, sizeof(TH_Send_Command));
-	printf("write data size : %d \n", len);
+	log("write data size : %d \n", len);
 	if (len < 0) {
-		printf("write data to serial failed! \n");
+		log("write data to serial failed! \n");
 	}
 }
 
@@ -102,11 +103,14 @@ inline void CTehu485::ReadWSD() {
 //	Clear485En();
 	unsigned char ucBuf[20];
 	int len = read(m_fdUart1, ucBuf, sizeof(ucBuf));
-	printf("get data: %d \n", len);
-	for (int i = 0; i < len; i++) {
-		printf(" %x", ucBuf[i]);
+	if(DEBUG_even)
+	{
+		printf("get data: %d \n", len);
+		for (int i = 0; i < len; i++) {
+			printf(" %x", ucBuf[i]);
+		}
+		printf("\n");
 	}
-	printf("\n");
 	if(ucBuf[0]==0x80&&ucBuf[3]==0x02)
 	{
 		WorkingCondition[0]=ucBuf[6];
@@ -123,26 +127,31 @@ inline void CTehu485::ReadWSD() {
 }
 inline void CTehu485::SendBHQ() {
 	int len = write(m_fdUart2, BH_Send_Command, sizeof(BH_Send_Command));
-	printf("write data size : %d \n", len);
+	log("write data size : %d \n", len);
 	if (len < 0) {
-		printf("write data to serial failed! \n");
+		log("write data to serial failed! \n");
 	}
 }
 inline void CTehu485::ReadBHQ() {
 	unsigned char ucBuf[40];
 	int len = read(m_fdUart2, ucBuf, sizeof(ucBuf));
-	printf("get data: %d \n", len);
-	for (int i = 0; i < len; i++) {
-		printf(" %x", ucBuf[i]);
+	if(DEBUG_even){
+		printf("get data: %d \n", len);
+		for (int i = 0; i < len; i++) {
+			printf(" %x", ucBuf[i]);
+		}
+		printf("\n");
 	}
-	printf("\n");
 	if(ucBuf[0]==0x01&&ucBuf[1]==0x04)
 	{
 		WorkingCondition[3]=ucBuf[10];
 		WorkingCondition[4]=ucBuf[12];
 		WorkingCondition[5]=ucBuf[14];
-		WorkingCondition[6]=ucBuf[3];
-		WorkingCondition[7]=ucBuf[4];
+		if(ucBuf[3]*256+ucBuf[4]<4000)
+		{
+			WorkingCondition[6]=ucBuf[3];
+			WorkingCondition[7]=ucBuf[4];
+		}
 		WorkingCondition[8]=ucBuf[20];
 		WorkingCondition[9]&=0xBF;
 	}
@@ -156,14 +165,17 @@ inline void CTehu485::ReadBHQ() {
 		WorkingCondition[9]|=0x40;
 	}
 }
-inline void CTehu485::get_WorkStation()
+inline void CTehu485::get_WorkStation(bool on)
 {
-	SendWSD();
-	sleep(1);
-	ReadWSD();
-	SendBHQ();
-	sleep(2);
-	ReadBHQ();
+	if(on){
+		SendWSD();
+		sleep(1);
+		ReadWSD();
+	}else{
+		SendBHQ();
+		sleep(1);
+		ReadBHQ();
+	}
 //	return WorkingCondition;
 }
 inline uchar *CTehu485::back_WorkStation()

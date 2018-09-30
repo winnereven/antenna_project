@@ -93,6 +93,8 @@ public:
 	void Clear();
 
 private:
+	//是否显示
+	int m_nEnDisp;
 #ifdef SPI_USE
 
 	// SPI设备标志
@@ -128,9 +130,9 @@ private:
 
 inline CDigitronSPI::CDigitronSPI() :
 #ifdef SPI_USE
-		m_nCursorPos(-1), m_bPoint(false){
+		m_nEnDisp(61),m_nCursorPos(-1), m_bPoint(false){
 #else
-		m_nCursorPos(-1), m_bPoint(false),dispalynumb{0x3f,0x06,0x5b,0x4f} {
+		m_nEnDisp(61),m_nCursorPos(-1), m_bPoint(false),dispalynumb{0x3f,0x06,0x5b,0x4f} {
 #endif
 	printf("CDigitronSPI object created!\n");
 #ifdef SPI_USE
@@ -184,6 +186,12 @@ inline CDigitronSPI::~CDigitronSPI() {
 
 inline void CDigitronSPI::SetText(string str) {
 	Clear();
+	time(&now);
+	timenow = localtime(&now);
+	m_nEnDisp = timenow->tm_sec;
+	if(m_nEnDisp == 0)
+		m_nEnDisp = 60 ;
+	m_bFlagDisplay = true;
 	const char* chars = str.c_str();
 	int len = sizeof(chars) / sizeof(char);
 	len = (len < 4 ? len : 4);
@@ -226,27 +234,35 @@ inline void CDigitronSPI::__InitSPI() {
 	printf("spi mode: %d\n", SPI_MODE);
 	printf("bits per word: %d\n", SPI_BITS);
 	printf("max speed: %d Hz (%d KHz)\n", SPI_SPEED, SPI_SPEED / 1000);
+	sleep(1);
 }
 #endif
 inline void CDigitronSPI::Display() {
 	int i = 0;
-	m_bFlagDisplay = true;
+//	m_bFlagDisplay = true;
 	printf("digitron displaying...\n");
 
-	long time = 0;
+	long time_t = 0;
 	bool blank = false;
 
 	//循环显示
 	while (m_bFlagDisplay) {
-		if (time > BLINK_INTERVAL_US) {
+		if (time_t > BLINK_INTERVAL_US) {
 			blank = !blank;
-			time = 0;
+			time_t = 0;
+			time(&now);
+			timenow = localtime(&now);
+			if(timenow->tm_sec == m_nEnDisp-1)
+			{
+				m_nEnDisp=61;
+				break;
+			}
 		}
 		DisplayBit(m_nDisCharCode[i], i, blank);
 		i++;
 		i %= 4;
 		usleep (DIGITRON_DELAY_US);
-		time += DIGITRON_DELAY_US;
+		time_t += DIGITRON_DELAY_US;
 	}
 
 //清屏
@@ -259,7 +275,7 @@ inline void CDigitronSPI::Display() {
 	m_bFlagDisplay = false;
 }
 
-inline void CDigitronSPI::DisplayBit(uint8_t code, int pos, bool blank) {
+ void CDigitronSPI::DisplayBit(uint8_t code, int pos, bool blank) {
 	int ret;
 	if (pos < 0 || pos > 3)
 		handle_error("Dig position is out of range!");

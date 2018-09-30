@@ -50,7 +50,9 @@ using namespace std;
 typedef enum {
 	SEARCH_HEAD, SEARCH_CMD, SEARCH_END
 } SearchStrategy;
-
+typedef enum {
+	DJBMQ,OMLBMQ
+} BMQselect;
 // NCU->ADU	下行指令
 typedef enum {
 	CMD_HEARTBEAT = 0x01,			// 心跳指令
@@ -125,14 +127,21 @@ time_t now;
 struct tm *timenow;
 
 int DEBUG_even = 0;
-
+#ifdef DEBUG_mode
 /* 出错处理宏供返回错误码的函数使用*/
 #define handle_error_en(en, msg) do{errno=en; perror(msg); exit(EXIT_FAILURE);} while(0)
 /* 出错处理宏*/
 #define handle_error(msg) do{perror(msg); exit(EXIT_FAILURE);} while(0)
 #define handle_err_log(x, args...) do{fprintf(stderr, x"\n", ##args); exit(EXIT_FAILURE);}while(0)
 #define log(x, args...) do{printf("file:%s function:%s line:%d "x"\n", __FILE__, __FUNCTION__, __LINE__, args);}while(0)
-
+#else
+/* 出错处理宏供返回错误码的函数使用*/
+#define handle_error_en(en, msg) do{;} while(0)
+/* 出错处理宏*/
+#define handle_error(msg) do{;} while(0)
+#define handle_err_log(x, args...) do{;}while(0)
+#define log(x, args...) do{;}while(0)
+#endif
 // DELAY
 #define KEY_SCAN_DELAY_US 20*1000	// 键盘扫描间隔
 #define DIGITRON_DELAY_US 3*1000	// 数码管动态显示间隔

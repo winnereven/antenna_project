@@ -33,7 +33,11 @@ SocketServer* mSocketServer;
 
 // 数码管显示线程
 void *DigDisplayThread(void *arg) {
-	mDigitron->Display();
+	while(1)
+	if(mDigitron->GetDisplayStatus())
+		mDigitron->Display();
+	else
+		sleep(1);
 	pthread_exit(NULL);
 }
 
@@ -142,12 +146,17 @@ int main(int argc, char* argv[]) {
 		}
 	}
 	system("echo 1 > /sys/class/leds/beep/brightness");
+	sleep(1);
+	system("echo 0 > /sys/class/leds/beep/brightness");
+
 	system("echo none > /sys/class/leds/led-run/trigger");
 	initKey();
 	initMotor();
 	initDigitron();
 	initSocketServer();
 	initEventDriver();
+	system("echo 1 > /sys/class/leds/beep/brightness");
+	sleep(1);
 	system("echo 0 > /sys/class/leds/beep/brightness");
 
 	mKeyScan->StartScan();

@@ -48,8 +48,9 @@ private:
 	int mCurrFuncIndex;
 	int mCurrFunction;
 	int mCurrPreDegree;
+	bool mBMQselect;
 	uchar mFPGAsta;
-
+	int mBack_degree;
 	// 功能选择模式按键处理
 	string __FuncSelProcessor(int key);
 	// 角度设置模式按键处理
@@ -64,6 +65,8 @@ private:
 	string __FuncFiveProcessor(int key);
 	// 相对角度设置按键处理
 	string __FuncSixProcessor(int key);
+	// 设置编码器类型
+	string __FuncSevenProcessor(int key);
 
 	Msg* __GetRunParamsReplyMsg(uint8_t cmd);
 
@@ -72,7 +75,7 @@ private:
 inline EventDriver::EventDriver(CKeyScan* keyScan, CDigitronSPI* digitron, SocketServer* server,
 		CMotor* motor) :
 		mKeyScan(keyScan), mDigitron(digitron), mSocketServer(server), mMotor(motor),
-		mMode(FUNCTION_SELECT), mCurrFuncIndex(0), mCurrFunction(-1), mCurrPreDegree(0),mFPGAsta(0x1b) {
+		mMode(FUNCTION_SELECT), mCurrFuncIndex(0), mCurrFunction(-1), mCurrPreDegree(0),mBMQselect(0),mFPGAsta(0x1b),mBack_degree(0){
 	printf("EventDriver Object created!\n");
 //	mDigitron->SetText(DigUtils::GetDisplayString(mMode, mCurrFuncIndex));
 	mMotor->SetOnDegreeChangedListener(this);
@@ -161,6 +164,11 @@ inline void EventDriver::onKeyClick(int key) {
 		case 5:		// 功能6 F006
 			disStr = __FuncSixProcessor(key);
 			break;
+//↓修改日期2018 9 19
+		case 6:		//功能7 F007
+			disStr = __FuncSevenProcessor(key);
+			break;
+//↑
 		default:
 			break;
 		}
@@ -173,11 +181,11 @@ inline string EventDriver::__FuncSelProcessor(int key) {
 	string str = "";
 	switch (key) {
 	case KEY_UP:
-		mCurrFuncIndex = (mCurrFuncIndex + 1) % 6;
+		mCurrFuncIndex = (mCurrFuncIndex + 1) % 7;
 		str = DigUtils::GetDisplayString(mMode, mCurrFuncIndex);
 		break;
 	case KEY_DOWN:
-		mCurrFuncIndex = (mCurrFuncIndex + 5) % 6;
+		mCurrFuncIndex = (mCurrFuncIndex + 6) % 7;
 		str = DigUtils::GetDisplayString(mMode, mCurrFuncIndex);
 		break;
 	case KEY_OK:
@@ -216,6 +224,9 @@ inline string EventDriver::__FuncSelProcessor(int key) {
 			mDigitron->SetPointEnable(true);
 			break;
 		case 6:
+			mMode = PRE_DEGREE_SELECT;
+
+			str = DigUtils::GetDisplayString(mMode, mBMQselect+10);
 			break;
 		}
 	case KEY_BACK:
@@ -465,12 +476,46 @@ inline string EventDriver::__FuncSixProcessor(int key) {
 	return str;
 
 }
-
+//设置编码器类型
+inline string EventDriver::__FuncSevenProcessor(int key) {
+	string str="";
+	switch (key) {
+	case KEY_BACK:
+		mCurrFunction = -1;
+		mMode = FUNCTION_SELECT;
+		mDigitron->SetPointEnable(false);
+		mDigitron->SetCursorPos(-1);
+		str = DigUtils::GetDisplayString(mMode, mCurrFuncIndex);
+		break;
+	case KEY_LEFT:
+		mBMQselect = 1;
+		str = DigUtils::GetDisplayString(mMode, mBMQselect+10);
+		break;
+	case KEY_RIGTH:
+		mBMQselect = 0;
+		str = DigUtils::GetDisplayString(mMode, mBMQselect+10);
+		break;
+	case KEY_UP:
+		mBMQselect = 1;
+		str = DigUtils::GetDisplayString(mMode, mBMQselect+10);
+		break;
+	case KEY_DOWN:
+		mBMQselect = 0;
+		str = DigUtils::GetDisplayString(mMode, mBMQselect+10);
+		break;
+	case KEY_OK:
+		mMotor->SetBMQ(mBMQselect);
+		break;
+	default:
+		break;
+	}
+	return str;
+}
 inline Msg* EventDriver::__GetRunParamsReplyMsg(uint8_t cmd) {
 	Msg *backMsg = NULL;
 	uint8_t data[SOCKET_MSG_DATA_SIZE];
 	data[0] = 0x01;	// 地址码
-	if(mMotor->IsRunning()==0)
+//	if(mMotor->IsRunning()==0)
 		data[1] = cmd;	// 对应下行命令码
 	data[2] = mMotor->IsRunning() ? 0x01 : 0x00;	// 状态信息
 	data[3] = mKeyScan->GetCtlMode() ? 0x01 : 0x02;	// 工作模式
@@ -493,7 +538,7 @@ inline void EventDriver::onDegreeChanged(int degree) {
 	if (mMode == DEGREE_SHOW)
 		mDigitron->SetText(DigUtils::GetDisplayString(DEGREE_SHOW, degree));
 
-	mSocketServer->SendMsg(__GetRunParamsReplyMsg(CMD_RUN_PARAM_QUERY));
+	mSocketServer->SendMsg(__GetRunParamsReplyMsg(CMD_BACK_HEARTBEAT));
 }
 
 inline void EventDriver::onDegreeChangeFinished() {
@@ -506,6 +551,8 @@ inline Msg* EventDriver::onGetDownCmd(Msg* down) {
 	int degree;
 	switch (down->cmd) {
 	case CMD_HEARTBEAT:		// 心跳指令
+		if (mMotor->IsRunning() || mKeyScan->GetCtlMode())
+			break;
 		backMsg = __GetRunParamsReplyMsg(CMD_HEARTBEAT);
 		break;
 	case CMD_ONLINE:		// 联机指令
@@ -577,6 +624,8 @@ inline Msg* EventDriver::onGetDownCmd(Msg* down) {
 		backMsg = __GetRunParamsReplyMsg(CMD_STOP);
 		break;
 	case CMD_RUN_PARAM_QUERY:	// 工况参数查询
+		mMotor->get_WorkStation(0);
+		mMotor->get_WorkStation(1);
 		backMsg = __GetRunParamsReplyMsg(CMD_RUN_PARAM_QUERY);
 		break;
 	case CMD_CORRECT_QUERY:		// 校准角度查询
@@ -626,7 +675,7 @@ inline Msg* EventDriver::onGetDownCmd(Msg* down) {
 		if (mMotor->IsRunning() || mKeyScan->GetCtlMode())
 			break;
 		degree = down->data[1] * 256 + down->data[2];
-		degree /= 10;
+//		degree /= 10;
 		mMotor->RunToDegree(degree+mMotor->GetCurrDegree());
 		backMsg = __GetRunParamsReplyMsg(CMD_RUN_DEGREE);
 		break;
@@ -641,6 +690,7 @@ inline Msg* EventDriver::onGetDownCmd(Msg* down) {
 //		system("reboot");
 //		exit(EXIT_SUCCESS);
 		system("sh /opt/restart.sh &");
+
 		break;
 		//TODO 修改FPGA回传指令功能
 	case CMD_FPGA_BACK:
@@ -656,20 +706,25 @@ inline Msg* EventDriver::onGetDownCmd(Msg* down) {
 //			case 0x04:mMotor->isCorrect=1;
 //
 //		}
-		if((down->data[1]&0x1b) != mFPGAsta)
+		if((down->data[1]&0x1a) != mFPGAsta)
 		{
-			mMotor->SetLedStatus(1,2);
-			mFPGAsta=down->data[1]&0x1b;
+			mMotor->SetLedStatus(1,1);
+			if(mFPGAsta != 0x1a)
+				mMotor->SetLedStatus(1,0);
+			mFPGAsta=down->data[1]&0x1a;
+
 		}
-		back_degree = down->data[9]*256+down->data[10];
-		back_degree /= 10;
-//		printf("back_degree is %d \n",back_degree);
-		if(back_degree!=mMotor->GetCurrDegree())
-			mMotor->SetCurrDegree(back_degree);
+		back_degree = down->data[9]*256+down->data[10]+5;
+		if(back_degree >= 36000)
+			back_degree -= 36000;
+//		back_degree /= 10;
+//		printf("back_degree is %d temp degree is %d\n",back_degree,mBack_degree);
+		if((back_degree/10)!=mMotor->GetCurrDegree())
+			mMotor->SetCurrDegree(back_degree/10);
+		else if(back_degree!=mBack_degree)
+			mBack_degree=back_degree;
 		else if(mMotor->IsRunning())
 			mMotor->SetStop();
-		else
-			;
 		break;
 
 	default:

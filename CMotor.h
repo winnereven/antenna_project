@@ -21,10 +21,11 @@
 #define DEGREES_FILE_NAME "/opt/pre_degrees.dat"
 #define CURDEGR_FILE_NAME "/opt/current_degrees.dat" //当前角度文件
 
-#define DEV_FWD_LED "/dev/gpio-P3.20"
-#define DEV_REV_LED "/dev/gpio-P3.21"
+#define DEV_FWD_LED "/dev/gpio-P2.20"
+#define DEV_REV_LED "/dev/gpio-P2.21"
 #define DEV_ERR_LED "/dev/gpio-ERR"
 #define DEV_RUN_LED "/dev/gpio-RUN"
+#define BMQ_SWITCH "/dev/gpio-P3.6"
 
 #define LED_SHINE_QUICK_COUNT	5	// *LED_DELAY_US
 #define LED_SHINE_SLOW_COUNT	15
@@ -88,6 +89,8 @@ public:
 	void SetLedStatus(int iLed,uint8_t data);
 	// 更新LED状态
 	void LedRefresh();
+	//设置编码器选项
+	int SetBMQ(bool on);
 
 //	int isCorrect;
 private:
@@ -95,7 +98,7 @@ private:
 	int mIntentDegreeDiff;		// 电机目标角度差值	-1：持续转动	0~360：欲转相对角度
 	int m_nOffset;
 	bool m_bForward;
-	int m_fdFwdLed, m_fdRevLed, m_fdErrLed, m_fdRunLed;
+	int m_fdFwdLed, m_fdRevLed, m_fdErrLed, m_fdRunLed,m_fdBmpSw;
 	vector<int> m_nDegrees;
 	bool mIsruning;
 	IOnDegreeChangedListener* mDegreeChangedListener;
@@ -133,6 +136,15 @@ inline CMotor::CMotor() :
 		m_nLedStatus[i] = 0;
 		m_fdLedWork[i] = open(LED_CHANNEL[i], O_RDWR);
 	}
+	m_fdBmpSw = open(BMQ_SWITCH, O_RDWR);
+	if (m_fdRunLed < 0)
+		handle_err_log("%s %s", BMQ_SWITCH, "open");
+
+	int ret = ioctl(m_fdBmpSw, SET_GPIO_LOW);//默认为电机编码器
+	if (ret < 0)
+		handle_err_log("%s %s", BMQ_SWITCH, "ioctl");
+
+
 	SetFwdLedOn(false);
 	SetRevLedOn(false);
 
@@ -181,8 +193,13 @@ inline void CMotor::Run() {
 //		}
 			time(&now);
 			timenow = localtime(&now);
-			if(timenow->tm_min%3==0&&timenow->tm_sec==0){	// 3分钟采集一次
-				get_WorkStation();
+			if(mIsruning)
+			{
+				if(timenow->tm_sec%5 == 0)
+					get_WorkStation(0);
+			}else if(timenow->tm_min%3==0&&timenow->tm_sec==0){	// 3分钟采集一次
+				get_WorkStation(0);
+				get_WorkStation(1);
 			}
 			LedRefresh();
 			usleep(DELAY);
@@ -199,15 +216,26 @@ inline int CMotor::SetCurrDegree(int currdegree) {
 	mIntentDegreeDiff -=abs(currdegree-mCurrDegree);
 	mCurrDegree = currdegree;
 	mCurrDegree %= 3600;
+	if (m_bForward)
+		SetFwdLedOn(true);
+	else
+		SetRevLedOn(true);
+
 	if (mDegreeChangedListener != NULL) {
 		mDegreeChangedListener->onDegreeChanged(mCurrDegree);
-		if (mIntentDegreeDiff <= 0) {
-			if (m_bForward)
-				SetFwdLedOn(false);
-			else
-				SetRevLedOn(false);
-			mDegreeChangedListener->onDegreeChangeFinished();
-		}
+//		if (mIntentDegreeDiff <= 0) {
+//			if (m_bForward)
+//				SetFwdLedOn(false);
+//			else
+//				SetRevLedOn(false);
+//			mDegreeChangedListener->onDegreeChangeFinished();
+//		}
+//		else{
+//			if (m_bForward)
+//				SetFwdLedOn(true);
+//			else
+//				SetRevLedOn(true);
+//		}
 	}
 	return mCurrDegree;
 }
@@ -222,6 +250,9 @@ inline bool CMotor::IsRunning() {
 inline void CMotor::SetStop() {
 	mIsruning=0;
 	mIntentDegreeDiff=0;
+	SetFwdLedOn(false);
+	SetRevLedOn(false);
+
 	SetCrutDegre(mCurrDegree);
 }
 inline void CMotor::StepFWD() {
@@ -279,14 +310,14 @@ inline void CMotor::RunToDegree(int degree) {
 
 inline void CMotor::StartRunFWD() {
 	m_bForward = true;
-	mIntentDegreeDiff = 65535;
+	mIntentDegreeDiff = 35999;
 	SetFwdLedOn(true);
 	this->SendtoFPGA(3,mIntentDegreeDiff,this->GetCurrDegree());
 }
 
 inline void CMotor::StartRunREV() {
 	m_bForward = false;
-	mIntentDegreeDiff = 65535;
+	mIntentDegreeDiff = 35999;
 	SetRevLedOn(true);
 	this->SendtoFPGA(2,mIntentDegreeDiff,this->GetCurrDegree());
 }
@@ -294,6 +325,9 @@ inline void CMotor::StartRunREV() {
 inline void CMotor::StopRun() {
 	SetCurrDegree(mCurrDegree);
 	mIntentDegreeDiff = 0; // 不为0，可以触发onDegreeChangeFinished
+	SetFwdLedOn(false);
+	SetRevLedOn(false);
+
 	this->SendtoFPGA(5,mIntentDegreeDiff,this->GetCurrDegree());
 }
 
@@ -441,5 +475,9 @@ inline void CMotor::__SetGpioOn(int fd, bool on) {
 //	string dev_name = __GetDevName(fd);
 //	if (ret < 0)
 //		handle_err_log("%s %s", dev_name.c_str(), "ioctl");
+}
+inline int CMotor::SetBMQ(bool on)
+{
+	return ioctl(m_fdBmpSw,on ? SET_GPIO_HIGHT : SET_GPIO_LOW);
 }
 #endif /* CMOTOR_H_ */

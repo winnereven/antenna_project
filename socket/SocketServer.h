@@ -135,20 +135,28 @@ inline void SocketServer::Start() {
 		/* Child process */
 		while (true) {
 			int recvCount = recv(m_nSocketClientFd, mRecvBuf, sizeof(mRecvBuf), 0); // Ω” ’
-			printf("recvCount = %d\n\n",recvCount);
 			if (recvCount == 0) {
 				printf("client disconnect\n");
 				break;
 			}
-			printf("receive data:");
-			for (int i = 0; i < recvCount; i++) {
-				printf("%x ", mRecvBuf[i]);
+			if(DEBUG_even)
+			{
+				printf("recvCount = %d\n\n",recvCount);
+				printf("receive data:");
+				for (int i = 0; i < recvCount; i++) {
+					printf("%x ", mRecvBuf[i]);
+				}
+				printf("\n");
 			}
 			__FeedDog();
-			printf("\n");
 			mSocketCache->MsgPreParse(m_nSocketClientFd, mRecvBuf, recvCount, NULL);
 			mSocketCache->MsgPreParse(m_nSocketClientFd, mSendBuf, mSendLen, NULL);
+//			printf("cmd is %d\n",mSendBuf[2]);
+			if(mSendBuf[2]==0x10)
+			{
 
+				exit(EXIT_SUCCESS);
+			}
 			memset(mRecvBuf, 0, sizeof(mRecvBuf));
 			memset(mSendBuf, 0, sizeof(mSendBuf));
 			mSendLen = 0;
@@ -194,22 +202,24 @@ inline void SocketServer::__UpstreamProcessor(int fd, Msg *msg, void *args) {
 	uint8_t sdbuf[32];
 	int len = msg->CopyToBuf(sdbuf, 0);
 	int ret;
-	printf("upstream:");
-	for (int i = 0; i < len; i++) {
-		printf("%x ", sdbuf[i]);
+	if(DEBUG_even){
+		printf("upstream:");
+		for (int i = 0; i < len; i++) {
+			printf("%x ", sdbuf[i]);
+		}
+		printf("\n");
 	}
-	printf("\n");
 	if(fd <=0)
 	{
-		printf("ERROR: Socket not connect!\n");
+		log("ERROR: Socket not connect!\n");
 		return ;
 	}
 	if ((ret = send(fd, sdbuf, len, 0)) == -1) {
-		printf("ERROR: Failed  to sent string.\n");
+		log("ERROR: Failed  to sent string.\n");
 		close(fd);
 		exit(1);
 	}
-	printf("OK: Sent %d bytes successful, please enter again.\n", ret);
+	log("OK: Sent %d bytes successful, please enter again.\n", ret);
 }
 
 inline void SocketServer::__DownstreamProcessor(int fd, Msg *msg, void *args) {
