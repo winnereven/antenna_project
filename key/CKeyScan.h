@@ -380,12 +380,14 @@ inline void CKeyScan::__KeyProc() {
 			keyCode = m_nTrg;
 		else
 			keyCode = KEY_CODE_NONE;
+//		printf("cntFlag=%d\n",cntFlag);
 		cntFlag = 0;
 	}
 
 	if (m_nCont & keyCode) {
 		cntFlag++;
 		if (cntFlag == CLICK_THRESHOLD) {	//判断长按，并进行长按处理，1s为长按
+			log("long keycode: %d", keyCode);
 			if (mKeyClickListener != NULL) {
 				system("echo 1 > /sys/class/leds/beep/brightness");
 				mKeyClickListener->onKeyClick(__GetKeyValue(LONG_CLICK, keyCode));
@@ -404,7 +406,7 @@ inline void CKeyScan::__KeyProc() {
 
 	if (m_nRelease) {
 		if (cntFlag > 1 && cntFlag < CLICK_THRESHOLD) {	//判断短按，并进行短按处理
-			log("keycode: %d", keyCode);
+			log("short keycode: %d", keyCode);
 			if (mKeyClickListener != NULL) {
 				system("echo 1 > /sys/class/leds/beep/brightness");
 				mKeyClickListener->onKeyClick(__GetKeyValue(SHORT_CLICK, keyCode));

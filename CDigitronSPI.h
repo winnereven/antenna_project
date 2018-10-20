@@ -16,14 +16,14 @@
 #include "sys/gpio.h"
 #include "sys/spidev.h"
 #include "utils/DigUtils.h"
-#define SPI_USE
+//#define SPI_USE
 #ifdef SPI_USE
 #define DEV_SPI "/dev/spidev2.0"
 #else
-#define DEV_SPI_MOSI "/dev/gpio-UTX2"
-#define DEV_SPI_SCK "/dev/gpio-URX2"
+#define DEV_SPI_MOSI "/dev/gpio-MOSI"
+#define DEV_SPI_SCK "/dev/gpio-CLK"
 #endif
-#define DEV_REFRESH "/dev/gpio-P2.5"
+#define DEV_REFRESH "/dev/gpio-CS"
 
 const uint32_t SPI_MODE = SPI_MODE_0;
 const uint32_t SPI_BITS = 8;
@@ -298,9 +298,12 @@ inline void CDigitronSPI::Display() {
 #else
 	dispalynumb[pos]=(pos == m_nCursorPos && blank) ? DigUtils::GetBlankCode() : code;
 	bool bflag=0;
-	for(int m=0;m<4;m++)
+	for(int n=0;n<5;n++)
 	{
-		uint8_t num = dispalynumb[m];
+		uint8_t num;
+		int m = n;
+		if(m == 4) {num = DigUtils::GetBlankCode();m--;}
+		else num = dispalynumb[m];
 		if(bflag == 0)
 		{
 			bflag =1;

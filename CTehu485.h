@@ -156,12 +156,12 @@ inline void CTehu485::ReadBHQ() {
 		WorkingCondition[9]&=0xBF;
 	}
 	else{
-		WorkingCondition[3]=0;
-		WorkingCondition[4]=0;
-		WorkingCondition[5]=0;
-		WorkingCondition[6]=0;
-		WorkingCondition[7]=0;
-		WorkingCondition[8]=0;
+//		WorkingCondition[3]=0;
+//		WorkingCondition[4]=0;
+//		WorkingCondition[5]=0;
+//		WorkingCondition[6]=0;
+//		WorkingCondition[7]=0;
+//		WorkingCondition[8]=0;
 		WorkingCondition[9]|=0x40;
 	}
 }
@@ -169,11 +169,11 @@ inline void CTehu485::get_WorkStation(bool on)
 {
 	if(on){
 		SendWSD();
-		sleep(1);
+		usleep(700000);
 		ReadWSD();
 	}else{
 		SendBHQ();
-		sleep(1);
+		usleep(700000);
 		ReadBHQ();
 	}
 //	return WorkingCondition;

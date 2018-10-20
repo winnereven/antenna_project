@@ -26,6 +26,7 @@
 #define DEV_ERR_LED "/dev/gpio-ERR"
 #define DEV_RUN_LED "/dev/gpio-RUN"
 #define BMQ_SWITCH "/dev/gpio-P3.6"
+#define MOTO_RDY "/dev/gpio-P3.26"
 
 #define LED_SHINE_QUICK_COUNT	5	// *LED_DELAY_US
 #define LED_SHINE_SLOW_COUNT	15
@@ -48,6 +49,8 @@ public:
 
 	// 电机当前是否在转动
 	bool IsRunning();
+	// 电机是否准备好
+	bool IsReady();
 	//电机停了
 	void SetStop();
 	// 电机正向步进一定角度
@@ -98,7 +101,7 @@ private:
 	int mIntentDegreeDiff;		// 电机目标角度差值	-1：持续转动	0~360：欲转相对角度
 	int m_nOffset;
 	bool m_bForward;
-	int m_fdFwdLed, m_fdRevLed, m_fdErrLed, m_fdRunLed,m_fdBmpSw;
+	int m_fdFwdLed, m_fdRevLed, m_fdErrLed, m_fdRunLed,m_fdBmpSw,m_fdIsready;
 	vector<int> m_nDegrees;
 	bool mIsruning;
 	IOnDegreeChangedListener* mDegreeChangedListener;
@@ -131,6 +134,9 @@ inline CMotor::CMotor() :
 	m_fdRunLed = open(DEV_RUN_LED, O_RDWR);
 	if (m_fdRunLed < 0)
 		handle_err_log("%s %s", DEV_RUN_LED, "open");
+	m_fdIsready = open(MOTO_RDY,O_RDWR);
+	if (m_fdIsready < 0)
+		handle_err_log("%s %s", MOTO_RDY, "open");
 
 	for (int i = 0; i < LEDNUM; i++) {
 		m_nLedStatus[i] = 0;
@@ -247,12 +253,21 @@ inline int CMotor::GetOffsetDegree() {
 inline bool CMotor::IsRunning() {
 	return mIntentDegreeDiff > 0||mIsruning;
 }
+inline bool CMotor::IsReady(){
+	uint8_t buf;
+	int ret = read(m_fdIsready, &buf, 1);
+	if (ret < 0)
+		handle_err_log("%s %s", DEV_STEP_L, "read");
+	return buf != 0x00;
+}
 inline void CMotor::SetStop() {
 	mIsruning=0;
 	mIntentDegreeDiff=0;
 	SetFwdLedOn(false);
 	SetRevLedOn(false);
-
+//	if (mDegreeChangedListener != NULL) {
+//		mDegreeChangedListener->onDegreeChanged(mCurrDegree);
+//	}
 	SetCrutDegre(mCurrDegree);
 }
 inline void CMotor::StepFWD() {
