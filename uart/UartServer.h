@@ -36,6 +36,7 @@ public:
 	void SetGetDownMsgListener(IOnGetDownCmdListener * listener);
 	void SendtoFPGA(uint8_t dir,int diffdegree,int currentdegree);
 	int m_fdFPGA;
+	bool needToChange;
 //	int m_fdTEMP,m_fdPROT;
 	//	int m_bUartEn;
 
@@ -71,6 +72,7 @@ inline UartServer::UartServer()
 			printf("set uartfpga attr failed m_fdFPGA = %d\n",m_fdFPGA);
 			exit(-1);
 		}
+		needToChange = 0;
 //	m_fdTEMP = open(DEV_UART1, O_RDWR | O_NOCTTY);
 //	ret = set_port_attr(m_fdTEMP, UART_BAUD_RATE, UART_DATA_BIT, UART_STOP_BIT, UART_PARITY,
 //			UART_VTIME, UART_VMIN);
@@ -124,6 +126,8 @@ inline void UartServer::Start() {
 }
 inline void UartServer::SendtoFPGA(uint8_t dir,int diffdegree,int currentdegree){
 	mSendtoFPGA[4]=dir;
+	if(dir<0x04)
+		needToChange = 1;
 	diffdegree *= 10;
 	mSendtoFPGA[8]=diffdegree/256;
 	mSendtoFPGA[9]=diffdegree%256;

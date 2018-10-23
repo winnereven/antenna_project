@@ -40,7 +40,7 @@ const char Dig_Char[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ' ',
 
 const string DIS_STR_MODE[] = { "F001", "F002", "F003", "F004", "F005", "F006", "F007" };
 const string DIS_STR_PRE_DEGREE[] = { "C001", "C002", "C003", "C004", "C005", "C006", "C007",
-		"C008", "C009", "C010","--oL","--dj" };
+		"C008", "C009", "C010","--dj","--oL" };
 
 namespace DigUtils {
 /**

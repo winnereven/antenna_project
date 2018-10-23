@@ -34,10 +34,14 @@ SocketServer* mSocketServer;
 // 数码管显示线程
 void *DigDisplayThread(void *arg) {
 	while(1)
-	if(mDigitron->GetDisplayStatus())
+	if(mDigitron->GetDisplayStatus()&&mMotor->IsReady())
 		mDigitron->Display();
-	else
+	else if(mMotor->IsReady())
 		sleep(1);
+	else{
+		sleep(1);
+		mMotor->SetLedStatus(1,1);
+	}
 	pthread_exit(NULL);
 }
 

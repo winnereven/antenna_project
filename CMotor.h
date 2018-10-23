@@ -62,6 +62,8 @@ public:
 
 	// 电机转到目标角度
 	void RunToDegree(int degree);
+	// 旋转相对角度
+	void RunToRelative(int degree);
 
 	// 电机正转
 	void StartRunFWD();
@@ -265,6 +267,10 @@ inline void CMotor::SetStop() {
 	mIntentDegreeDiff=0;
 	SetFwdLedOn(false);
 	SetRevLedOn(false);
+	if(needToChange)
+		SetLedStatus(1,1);
+	else
+		SetLedStatus(1,0);
 //	if (mDegreeChangedListener != NULL) {
 //		mDegreeChangedListener->onDegreeChanged(mCurrDegree);
 //	}
@@ -292,6 +298,10 @@ inline void CMotor::StepREV(int degree) {
 	m_bForward = false;
 	mIntentDegreeDiff = degree;
 	this->SendtoFPGA(0,mIntentDegreeDiff,this->GetCurrDegree());
+}
+inline void CMotor::RunToRelative(int degree) {
+	SetFwdLedOn(true);
+	this->SendtoFPGA(1,degree,this->GetCurrDegree());
 }
 
 inline void CMotor::RunToDegree(int degree) {

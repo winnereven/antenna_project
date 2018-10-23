@@ -308,6 +308,7 @@ inline string EventDriver::__FuncTwoProcessor(int key) {
 	case KEY_OK:
 		mMode = DEGREE_SHOW;
 		degree = mMotor->GetPreDegree(mCurrPreDegree);
+		str = DigUtils::GetDisplayString(mMode, mMotor->GetCurrDegree());
 		mDigitron->SetPointEnable(true);
 		mMotor->RunToDegree(degree);
 		break;
@@ -456,6 +457,7 @@ inline string EventDriver::__FuncSixProcessor(int key) {
 		if (mMode == DEGREE_SHOW) {
 			mMode = DEGREE_SETTING;
 			mDigitron->SetCursorPos(0);
+			str = DigUtils::GetDisplayString(mMode, 0);
 		} else {
 			mCurrFunction = -1;		// 返回功能选择
 			mMode = FUNCTION_SELECT;
@@ -466,11 +468,13 @@ inline string EventDriver::__FuncSixProcessor(int key) {
 		break;
 //TODO 按钮定点控制
 	case KEY_OK:
+		if(mMotor->IsRunning())break;
 		mMode = DEGREE_SHOW;
 		mDigitron->SetCursorPos(-1);
-		newDegree = mDigitron->GetDegree()/10;
+		newDegree = mDigitron->GetDegree();
 		str = DigUtils::GetDisplayString(mMode, mMotor->GetCurrDegree());
-		mMotor->RunToDegree(newDegree+mMotor->GetCurrDegree());
+		mMotor->RunToRelative(newDegree);
+		mCurrFunction = -1;//返回功能
 		break;
 	}
 	return str;
@@ -525,6 +529,15 @@ inline Msg* EventDriver::__GetRunParamsReplyMsg(uint8_t cmd) {
 		data[i+4] = *(iw+i);
 	}
 	data[2]^=*(iw+9);
+	if(mMotor->needToChange)
+	{
+		data[2]|=0x10;//电机没有准备好
+		mMotor->SetLedStatus(1,1);
+	}else
+	{
+		data[2]&=0xef;
+		mMotor->SetLedStatus(1,0);
+	}
 	data[13] = mMotor->GetCurrDegree() >> 8;
 	data[14] = mMotor->GetCurrDegree() & 0xff;
 
@@ -676,7 +689,7 @@ inline Msg* EventDriver::onGetDownCmd(Msg* down) {
 			break;
 		degree = down->data[1] * 256 + down->data[2];
 //		degree /= 10;
-		mMotor->RunToDegree(degree+mMotor->GetCurrDegree());
+		mMotor->RunToRelative(degree);
 		backMsg = __GetRunParamsReplyMsg(CMD_RUN_DEGREE);
 		break;
 	case CMD_ADU_REBOOT:	//ADU reboot
@@ -722,7 +735,10 @@ inline Msg* EventDriver::onGetDownCmd(Msg* down) {
 		if((back_degree/10)!=mMotor->GetCurrDegree())
 			mMotor->SetCurrDegree(back_degree/10);
 		else if(back_degree!=mBack_degree)
-			mBack_degree=back_degree;
+			{
+				mMotor->needToChange = 0;
+				mBack_degree=back_degree;
+			}
 		else if(mMotor->IsRunning())
 			mMotor->SetStop();
 		break;

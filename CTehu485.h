@@ -116,13 +116,13 @@ inline void CTehu485::ReadWSD() {
 		WorkingCondition[0]=ucBuf[6];
 		WorkingCondition[1]=ucBuf[5];
 		WorkingCondition[2]=ucBuf[7];
-		WorkingCondition[9]&=0xdf;
+		WorkingCondition[9]&=0xdf;//温湿度正常
 	}
 	else{
 		WorkingCondition[0]=0;
 		WorkingCondition[1]=0;
 		WorkingCondition[2]=0;
-		WorkingCondition[9]|=0x20;
+		WorkingCondition[9]|=0x20;//温湿度异常
 	}
 }
 inline void CTehu485::SendBHQ() {
@@ -153,7 +153,7 @@ inline void CTehu485::ReadBHQ() {
 			WorkingCondition[7]=ucBuf[4];
 		}
 		WorkingCondition[8]=ucBuf[20];
-		WorkingCondition[9]&=0xBF;
+		WorkingCondition[9]&=0xBF;//保护器正常
 	}
 	else{
 //		WorkingCondition[3]=0;
@@ -162,7 +162,7 @@ inline void CTehu485::ReadBHQ() {
 //		WorkingCondition[6]=0;
 //		WorkingCondition[7]=0;
 //		WorkingCondition[8]=0;
-		WorkingCondition[9]|=0x40;
+		WorkingCondition[9]|=0x40;//保护器异常
 	}
 }
 inline void CTehu485::get_WorkStation(bool on)
