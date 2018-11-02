@@ -18,6 +18,7 @@ public:
 	}
 	virtual ~IOnFindUartListener() {
 	}
+	//串口接收指令处理函数
 	virtual void onFindUartInstruction(int fd, Msg *msg, void *args) = 0;
 
 };

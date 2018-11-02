@@ -15,9 +15,9 @@
 using namespace std;
 
 namespace DevUtils {
-inline int OpenDev(string dev, int flag);
-inline int OpenDev(string dev);
-inline void CloseDev(int fd);
+inline int OpenDev(string dev, int flag);//以字符串 和 flag 的形式打开文件
+inline int OpenDev(string dev);//以字符串的形式打开文件
+inline void CloseDev(int fd);//关闭文件
 }
 
 namespace DevUtils {

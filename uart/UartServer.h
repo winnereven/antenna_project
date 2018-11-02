@@ -27,15 +27,35 @@ class UartServer: IOnFindUartListener {
 public:
 	UartServer();
 	~UartServer();
+	//串口接收线程开启
 	void Start();
-
+	/*
+	 * 读串口
+	 */
 	void GetUartData(int fd , uchar* buf,int* lenofdata);
+	/*
+	 * 通过文件描述符发送
+	 */
 	int UartSendByfd(int fd,uchar* buf,int len);
+	/*
+	 *以消息体的方式发送
+	 */
 	void SendMsg(Msg *msg);
+	/*
+	 * 收到消息的分类处理
+	 */
 	virtual void onFindUartInstruction(int fd, Msg *msg, void *args);
+	/*
+	 * 设置消息侦听函数指针
+	 */
 	void SetGetDownMsgListener(IOnGetDownCmdListener * listener);
+	/*
+	 * 发送到FPGA
+	 */
 	void SendtoFPGA(uint8_t dir,int diffdegree,int currentdegree);
+	//FPGA 句柄
 	int m_fdFPGA;
+	//需要角度改变
 	bool needToChange;
 //	int m_fdTEMP,m_fdPROT;
 	//	int m_bUartEn;
@@ -52,8 +72,8 @@ private:
 
 	// 串口初始化
 //	void __InitUART();
-	void __UpstreamProcessor(int fd,Msg *msg, void *args);
-	void __DownstreamProcessor(int fd, Msg *msg, void *args);
+	void __UpstreamProcessor(int fd,Msg *msg, void *args);//上行数据处理
+	void __DownstreamProcessor(int fd, Msg *msg, void *args);//下行数据处理
 };
 
 //inline UartServer::UartServer():mGetDownCmdListener(NULL),mSendtoFPGA({0x24,0x24,0x51,0x0a,0x00,0x01,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x0d})

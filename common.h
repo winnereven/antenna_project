@@ -28,7 +28,7 @@ using namespace std;
 #define uchar unsigned char
 #define PRE_DEGREE_COUNT 10
 
-// Socket
+// Socket参数
 #define MSG_RECV_HEAD	0x2424
 #define MSG_SEND_HEAD	0x2929
 #define MSG_END			0x0d
@@ -36,7 +36,7 @@ using namespace std;
 #define MSG_CMD_SIZE	1
 #define MSG_END_SIZE	1
 #define MSG_CRC_SIZE	2
-
+//ADU 地址
 #define ADDRESS 0x01
 
 #define SOCKET_MSG_FORMAT_SIZE (MSG_HEAD_SIZE + MSG_CMD_SIZE + MSG_CRC_SIZE + MSG_END_SIZE)
@@ -50,6 +50,7 @@ using namespace std;
 typedef enum {
 	SEARCH_HEAD, SEARCH_CMD, SEARCH_END
 } SearchStrategy;
+// 编码器枚举，用于编码器的切换
 typedef enum {
 	DJBMQ,OMLBMQ
 } BMQselect;

@@ -18,6 +18,7 @@ public:
 	}
 	virtual ~IOnFindMsgListener() {
 	}
+	//指令处理函数
 	virtual void onFindInstruction(int fd, Msg *msg, void *args) = 0;
 
 };

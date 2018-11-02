@@ -130,6 +130,7 @@ inline void EventDriver::onKeyClick(int key) {
 
 		}
 	}
+//	mDigitron->StartDisplay();
 	if (mMotor->IsRunning() && key != 9 && key != 10) // 电机运转过程中按键无效
 		return;
 	string disStr;

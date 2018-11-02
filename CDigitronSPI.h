@@ -18,13 +18,18 @@
 #include "utils/DigUtils.h"
 //#define SPI_USE
 #ifdef SPI_USE
+/*
+ * 引脚定义查看原理图
+ */
 #define DEV_SPI "/dev/spidev2.0"
 #else
 #define DEV_SPI_MOSI "/dev/gpio-MOSI"
 #define DEV_SPI_SCK "/dev/gpio-CLK"
 #endif
 #define DEV_REFRESH "/dev/gpio-CS"
-
+/*
+ * SPI设置所需要的参数
+ */
 const uint32_t SPI_MODE = SPI_MODE_0;
 const uint32_t SPI_BITS = 8;
 const uint32_t SPI_SPEED = 100000;
@@ -47,6 +52,11 @@ public:
 	 * @return
 	 */
 	void StopDisplay();
+	/**
+	 * 开始显示
+	 * @return
+	 */
+	void StartDisplay();
 	/**
 	 * 获得显示状态
 	 * @return true:displaying false:not
@@ -211,7 +221,9 @@ inline void CDigitronSPI::Clear() {
 inline void CDigitronSPI::StopDisplay() {
 	m_bFlagDisplay = false;
 }
-
+inline void CDigitronSPI::StartDisplay() {
+	m_bFlagDisplay = true;
+}
 inline bool CDigitronSPI::GetDisplayStatus() {
 	return m_bFlagDisplay;
 }

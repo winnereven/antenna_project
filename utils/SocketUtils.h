@@ -13,8 +13,8 @@
 #include "../common.h"
 
 namespace SocketUtils {
-inline int GetDownstreamDataLen(uint8_t cmd);
-inline int GetUpstreamDataLen(uint8_t cmd);
+inline int GetDownstreamDataLen(uint8_t cmd);//获得下行指令的长度，通过CMD
+inline int GetUpstreamDataLen(uint8_t cmd);//。。。上行。。。。。。。。。
 }
 //TODO 指令长度修改
 namespace SocketUtils {

@@ -17,10 +17,13 @@
 #include "CTehu485.h"
 
 #define DELAY 40*1000
-#define MOTOR_STEP 5
-#define DEGREES_FILE_NAME "/opt/pre_degrees.dat"
-#define CURDEGR_FILE_NAME "/opt/current_degrees.dat" //当前角度文件
+#define MOTOR_STEP 5//电机步进度数设置
 
+#define DEGREES_FILE_NAME "/opt/pre_degrees.dat"//预设的角度
+#define CURDEGR_FILE_NAME "/opt/current_degrees.dat" //当前角度文件
+/*
+ * 具体引脚定义参考原理图
+ */
 #define DEV_FWD_LED "/dev/gpio-P2.20"
 #define DEV_REV_LED "/dev/gpio-P2.21"
 #define DEV_ERR_LED "/dev/gpio-ERR"
@@ -113,8 +116,11 @@ private:
 
 	// 加载预设10组本地角度数据
 	void __LoadLocalData();
+	// 保存预设10组本地角度数据
 	void __SaveLocalData();
+	// 加载校准度数
 	void __LoadCurtDegre();
+	// 设置引脚高低电平
 	void __SetGpioOn(int fd, bool on);
 
 };
@@ -390,8 +396,9 @@ inline int CMotor::GetPreDegree(int index) {
 
 inline void CMotor::Correct() {
 	m_nOffset = (m_nOffset + mCurrDegree) % 3600;
-	__SaveLocalData();
 	mCurrDegree = 0;
+	__SaveLocalData();
+	SetCrutDegre(mCurrDegree);
 //	isCorrect = 0;
 	this->SendtoFPGA(4,0,0);
 }

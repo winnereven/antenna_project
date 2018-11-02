@@ -18,6 +18,7 @@ public:
 	}
 	virtual ~IOnGetDownCmdListener() {
 	}
+	//接收指令处理
 	virtual Msg* onGetDownCmd(Msg* down) = 0;
 };
 

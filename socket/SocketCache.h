@@ -17,23 +17,23 @@
 
 class DataCache {
 public:
-	uint8_t buf[MSG_CACHE_SIZE];
-	int front;
-	int rear;
-	int current;
-	int len;
-	int tag;
-	SearchStrategy strategy;
-	IOnFindMsgListener *mFindMsgListener;
+	uint8_t buf[MSG_CACHE_SIZE];//缓存
+	int front;//指针头
+	int rear;//指针尾
+	int current;//当前位置
+	int len;//长度
+	int tag;//标签
+	SearchStrategy strategy;//策略
+	IOnFindMsgListener *mFindMsgListener;//侦听指针
 	void *args;
-	Msg msg;
+	Msg msg;//指令存在形式
 
 	DataCache(IOnFindMsgListener *listener);
 	~DataCache();
 	int __MsgCopyIn(uint8_t *buf, int len);	// 将数据添加入缓存
 	int __MsgCopyOut(uint8_t *buf, int start_index, int len);	//将数据移出缓存
 	void __MsgParse(int fd);		// 通信数据解析
-	bool MsgPreParse(int fd, uint8_t *buf, int len, void *args);
+	bool MsgPreParse(int fd, uint8_t *buf, int len, void *args);//数据解析函数
 };
 
 inline DataCache::DataCache(IOnFindMsgListener *listener) :

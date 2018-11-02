@@ -35,14 +35,31 @@ class SocketServer: IOnFindMsgListener {
 public:
 	SocketServer();
 	~SocketServer();
+	/*
+	 * SOCKET服务启动
+	 */
 	void Start();
+	/*
+	 * 正常断开
+	 */
 	void DisConnect();
+	/*
+	 * 设置串口开启
+	 */
 	void SetEnable(bool enable);
+	/*
+	 * 查询连接状态
+	 */
 	int CheckStatu();
-
+	/*
+	 * 设置侦听函数指针
+	 */
 	void SetGetDownMsgListener(IOnGetDownCmdListener * listener);
+	/*
+	 * 以消息体的方式发送
+	 */
 	void SendMsg(Msg *msg);
-	// @Override
+	// @Override指令分类执行
 	virtual void onFindInstruction(int fd, Msg *msg, void *args);
 private:
 	uint8_t mSendBuf[BUFFER_SIZE];
@@ -58,8 +75,11 @@ private:
 	void __UpstreamProcessor(int fd, Msg *msg, void *args);
 	// 下行指令处理
 	void __DownstreamProcessor(int fd, Msg *msg, void *args);
+	//初始化看门狗
 	void __InitWatchDog();
+	//喂狗
 	void __FeedDog();
+	//关狗
 	void __CloseWd();
 };
 

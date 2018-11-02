@@ -16,21 +16,21 @@
 class Msg {
 public:
 	int f_dsource;//配置来源信道
-	uint8_t cmd;
-	uint8_t data[SOCKET_MSG_DATA_SIZE];
-	uint16_t crc;
-	int iswait;
-	int dataLen;
-	bool isRecv;
+	uint8_t cmd;//命令码
+	uint8_t data[SOCKET_MSG_DATA_SIZE];//socket填充缓存
+	uint16_t crc;//crc校验
+	int iswait;//是否重新发送
+	int dataLen;//数据的长度
+	bool isRecv;//是否是接收到的数据
 
 	Msg();
 	// cmd:操作码	buf:指令数据	len:数据长度	isRecv:是否为下行指令
 	Msg(int ds,uint8_t cmd, uint8_t *data, int dataLen, bool isRecv);
 	~Msg();
-	Msg* Update();
-	bool CRCCheck();
+	Msg* Update();//指令体更新函数
+	bool CRCCheck();//crc检验函数
 
-	int CopyToBuf(uint8_t *container, int start_index);
+	int CopyToBuf(uint8_t *container, int start_index);//保存至缓存里
 
 private:
 	uint8_t buf[SOCKET_MSG_SIZE];

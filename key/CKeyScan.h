@@ -14,7 +14,9 @@
 #include <sys/ioctl.h>
 #include "../common.h"
 #include "IOnKeyClickListener.h"
-
+/*
+ * IO定义参考原理图
+ */
 #define DEV_ROW1 "/dev/gpio-P2.12"
 #define DEV_ROW2 "/dev/gpio-P2.13"
 #define DEV_ROW3 "/dev/gpio-P2.14"
@@ -28,7 +30,9 @@
 
 #define COUNT_COL 2
 #define COUNT_ROW 4
-
+/*
+ * 按键识别变量
+ */
 #define KEY_CODE_NONE 0
 #define KEY_CODE_UNKNOWN -1
 #define CLICK_THRESHOLD 50		//长短按临界值
@@ -59,7 +63,9 @@ public:
 	 * @param onClick:按键事件处理函数指针
 	 */
 	void SetOnClickListener(IOnKeyClickListener* listener);
-
+	/*
+	 * 得到控制模式
+	 */
 	bool GetCtlMode();
 
 private:
@@ -387,7 +393,7 @@ inline void CKeyScan::__KeyProc() {
 	if (m_nCont & keyCode) {
 		cntFlag++;
 		if (cntFlag == CLICK_THRESHOLD) {	//判断长按，并进行长按处理，1s为长按
-			log("long keycode: %d", keyCode);
+			log("long keycode: %x,m_ncount is : %x\n", keyCode,m_nCont);
 			if (mKeyClickListener != NULL) {
 				system("echo 1 > /sys/class/leds/beep/brightness");
 				mKeyClickListener->onKeyClick(__GetKeyValue(LONG_CLICK, keyCode));
@@ -406,7 +412,7 @@ inline void CKeyScan::__KeyProc() {
 
 	if (m_nRelease) {
 		if (cntFlag > 1 && cntFlag < CLICK_THRESHOLD) {	//判断短按，并进行短按处理
-			log("short keycode: %d", keyCode);
+			log("short keycode: %x,m_nrelease is %x\n", keyCode,m_nRelease);
 			if (mKeyClickListener != NULL) {
 				system("echo 1 > /sys/class/leds/beep/brightness");
 				mKeyClickListener->onKeyClick(__GetKeyValue(SHORT_CLICK, keyCode));
@@ -442,6 +448,8 @@ inline void CKeyScan::__KeyRead() {
 	m_nTrg = readData & (readData ^ m_nCont);
 	m_nRelease = (readData ^ m_nCont) ^ m_nTrg;
 	m_nCont = readData;
+//	if(m_nTrg | m_nRelease | m_nCont)
+//	printf("m_nTrg is %x,m_nRelease is %x,m_nCont is %x\n",m_nTrg,m_nRelease,m_nCont);
 }
 
 #endif /* CKEYSCAN_H_ */
